@@ -118,6 +118,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -133,6 +134,14 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
     <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
     <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span style="color:#555;font-size:.75rem">or</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+    <button onclick="signInWithGoogle()" style="width:100%;background:#fff;color:#333;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
+    </button>
     <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
   </div>
 </div>
@@ -574,7 +583,12 @@ let G = {
   auctions:[], dailies:[], achDone:[], pendingPulled:[]
 };
 // ── FIREBASE SETUP ───────────────────────────────────────────────────────────
-const firebaseConfig = {databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com"};
+const firebaseConfig = {
+  databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com",
+  apiKey: "AIzaSyPlaceholder",
+  authDomain: "cardio-game-3713.firebaseapp.com",
+  projectId: "cardio-game-3713"
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
@@ -766,6 +780,47 @@ function executeTM(){
 
 function clearTM(){tmSending=[];tmReceiving=[];renderTMInv();renderTMAI();renderTMSides();updateTMEval();document.getElementById('tmMsg').textContent='';}
 
+function signInWithGoogle(){
+  // Initialize auth if not done
+  try {
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).then(result=>{
+      const user = result.user;
+      const name = user.displayName || user.email.split('@')[0];
+      const uid = user.uid;
+      // Use Google UID as key, display name as username
+      const safeKey = uid;
+      db.ref('saves/'+safeKey).once('value').then(snap=>{
+        const cloudSave = snap.val();
+        if(cloudSave){
+          G = cloudSave;
+          G.username = name;
+          save();
+          notify('👋 Welcome back, '+name+'!');
+        } else {
+          G = {username:name,passHash:'google_'+uid,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+            fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+            packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+          save();
+          notify('🎉 Welcome, '+name+'! Signed in with Google');
+        }
+        closeLoginModal();
+        startGame();
+      });
+    }).catch(err=>{
+      notify('❌ Google sign-in failed: '+err.message);
+    });
+  } catch(e) {
+    notify('❌ Google sign-in not available right now');
+  }
+}
+
+function closeLoginModal(){
+  const m=document.getElementById('usernameModal');
+  if(m){m.classList.add('hidden');m.style.display='none';}
+}
+
 function hashPass(s){
   // Simple hash for password (not cryptographic but prevents casual theft)
   let h=0;
@@ -795,20 +850,17 @@ function setUsername(){
       G.passHash=passHash;
       save();
       notify('👋 Welcome back, '+name+'!');
-      const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
+      closeLoginModal();
       startGame();
     } else {
       // New account - fresh state with starting coins
-      const freshState={
-        username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      G={username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
         fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
         packsOpenedByType:{},stagedCards:[],lastDaily:null,
-        auctions:[],dailies:[],achDone:[],pendingPulled:[]
-      };
-      G=freshState;
+        auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
       save();
       notify('🎉 Account created, '+name+'! You start with 300 coins 💰');
-      const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
+      closeLoginModal();
       startGame();
     }
   }).catch(()=>{
