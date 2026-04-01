@@ -766,18 +766,22 @@ function placeBid(id){
 }
 
 function tickAuctions(){
+  if(!G||!G.auctions) return;
   let changed=false;
   G.auctions.forEach(a=>{
     a.timeLeft=Math.max(0,a.timeLeft-1);
     a.aiTimer=Math.max(0,a.aiTimer-1);
     // AI bids
-    if(a.aiTimer===0&&a.timeLeft>5&&a.topBidder!=='You'||
-       (a.aiTimer===0&&a.topBidder==='You'&&Math.random()<.4)){
-      const ai=AI_PLAYERS[Math.floor(Math.random()*AI_PLAYERS.length)];
-      if(ai.coins>a.currentBid+10){
-        a.currentBid+=5+Math.floor(Math.random()*20);
-        a.topBidder=ai.name;
-        a.aiTimer=10+Math.floor(Math.random()*15);
+    const AI_NAMES=['CardKing','PackMaster','MythicHunter','RareFinder','LuckyDraw'];
+    if(a.aiTimer===0&&a.timeLeft>5){
+      if(a.topBidder!=='You'||(a.topBidder==='You'&&Math.random()<0.35)){
+        const aiName=AI_NAMES[Math.floor(Math.random()*AI_NAMES.length)];
+        const bump=5+Math.floor(Math.random()*25);
+        if(a.currentBid+bump < a.card.val*1.5){
+          a.currentBid+=bump;
+          a.topBidder=aiName;
+          a.aiTimer=8+Math.floor(Math.random()*12);
+        }
       }
     }
     // End auction
