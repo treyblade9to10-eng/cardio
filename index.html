@@ -516,11 +516,16 @@ function setUsername(){
       document.getElementById('usernameModal').classList.add('hidden');
       startGame();
     } else {
-      // New account
-      G.username=name;
-      G.passHash=passHash;
+      // New account - fresh state with starting coins
+      const freshState={
+        username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,
+        auctions:[],dailies:[],achDone:[],pendingPulled:[]
+      };
+      G=freshState;
       save();
-      notify('🎉 Account created, '+name+'! Welcome!');
+      notify('🎉 Account created, '+name+'! You start with 300 coins 💰');
       document.getElementById('usernameModal').classList.add('hidden');
       startGame();
     }
