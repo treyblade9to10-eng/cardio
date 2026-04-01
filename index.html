@@ -137,6 +137,64 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   </div>
 </div>
 
+<!-- INCOMING TRADE POPUP -->
+<div class="incoming-trade-popup hidden" id="incomingPopup">
+  <div style="font-size:2.5rem;margin-bottom:8px">🔄</div>
+  <h3 style="color:var(--accent2);margin-bottom:6px" id="popupTitle">Trade Request!</h3>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px" id="popupDesc"></p>
+  <div id="popupCards" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px"></div>
+  <div class="popup-btns">
+    <button class="popup-btn accept" onclick="acceptTradePopup()">✅ Accept</button>
+    <button class="popup-btn decline" onclick="declineTradePopup()">❌ Decline</button>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="popupOverlay" onclick="declineTradePopup()" style="z-index:490"></div>
+
+<!-- TRADE ROOM -->
+<div class="trade-room-overlay hidden" id="tradeRoomOverlay">
+  <div class="trade-room">
+    <div class="trade-room-header">
+      <div style="font-size:2rem">🔄</div>
+      <h2>Live Trade Room</h2>
+      <p style="color:#888;font-size:.8rem;margin-top:4px" id="tradeRoomWith"></p>
+    </div>
+    
+    <!-- Trade sides -->
+    <div class="trade-room-sides">
+      <div class="trade-room-col">
+        <h3 id="mySideLabel">Your Cards</h3>
+        <div class="trade-room-cards" id="myTradeCards"></div>
+        <div style="margin-top:8px;font-size:.75rem;color:#888">Click your inventory to add:</div>
+        <div id="myTRInv" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;margin-top:6px"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--accent2)">⇌</div>
+      <div class="trade-room-col">
+        <h3 id="theirSideLabel">Their Cards</h3>
+        <div class="trade-room-cards" id="theirTradeCards"><p style="color:#555;font-size:.75rem">Waiting for them to add cards...</p></div>
+      </div>
+    </div>
+
+    <div class="trade-status-bar" id="tradeStatusBar">Both players must click Ready to proceed</div>
+
+    <!-- Ready buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="ready-btn not-ready" id="myReadyBtn" onclick="toggleReady()">⚡ Ready Up</button>
+      <button class="ready-btn not-ready" id="theirReadyBtn" disabled>Waiting...</button>
+    </div>
+
+    <!-- Final confirm (shown when both ready) -->
+    <div id="finalConfirm" style="display:none">
+      <div style="text-align:center;color:var(--gold);font-weight:700;margin-bottom:10px">⚡ Both players ready! Confirm trade?</div>
+      <div class="final-btns">
+        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT</button>
+        <button class="final-btn cancel" onclick="cancelTradeRoom()">❌ CANCEL</button>
+      </div>
+    </div>
+
+    <button class="btn-sm" onclick="cancelTradeRoom()" style="margin-top:12px;width:100%">🚪 Leave Trade Room</button>
+  </div>
+</div>
+
 <!-- PACK OPENING MODAL -->
 <div class="modal-overlay hidden" id="packModal">
   <div class="modal">
@@ -1039,6 +1097,9 @@ function tickAuctions(){
 // ── TRADE ─────────────────────────────────────────────────────────────────────
 // ── P2P TRADE SYSTEM ─────────────────────────────────────────────────────────
 let tradeOfferCards = [];
+let currentTradeRoom = null; // {tradeId, partner, myCards, theirCards, myReady, theirReady}
+let pendingPopupTrade = null;
+let tradeRoomInterval = null;
 
 function renderTrade(){
   renderTradeOfferInv();
@@ -1090,8 +1151,8 @@ function sendTradeRequest(){
   const msgEl=document.getElementById('tradeSendMsg');
   if(!target){msgEl.innerHTML='<span style="color:var(--red)">❌ Enter a username</span>';return;}
   if(!tradeOfferCards.length){msgEl.innerHTML='<span style="color:var(--red)">❌ Stage some cards to offer</span>';return;}
-  if(target.toLowerCase()===G.username.toLowerCase()){msgEl.innerHTML='<span style="color:var(--red)">❌ You cannot trade with yourself</span>';return;}
-  
+  if(target.toLowerCase()===G.username.toLowerCase()){msgEl.innerHTML='<span style="color:var(--red)">❌ Cannot trade with yourself</span>';return;}
+
   const safeTarget=target.replace(/[.#$\[\]]/g,'_');
   const tradeId='trade_'+Date.now();
   const tradeData={
@@ -1100,17 +1161,16 @@ function sendTradeRequest(){
     wanting:want||'Make me an offer',
     timestamp:Date.now(),status:'pending'
   };
-  
-  // Save trade request to Firebase under target user
+
   db.ref('trades/'+safeTarget+'/'+tradeId).set(tradeData).then(()=>{
-    msgEl.innerHTML='<span style="color:var(--green)">✅ Trade request sent to '+target+'!</span>';
+    msgEl.innerHTML='<span style="color:var(--green)">✅ Trade request sent to '+target+'! They will see a popup.</span>';
     tradeOfferCards=[];
     document.getElementById('tradeTargetUser').value='';
     document.getElementById('tradeWantInput').value='';
     renderTradeOfferInv();renderTradeStaged();
     G.trades++;save();checkAchievements();
   }).catch(()=>{
-    msgEl.innerHTML='<span style="color:var(--red)">❌ Could not send — is that username correct?</span>';
+    msgEl.innerHTML='<span style="color:var(--red)">❌ Could not send — check the username</span>';
   });
 }
 
@@ -1128,7 +1188,7 @@ function checkIncomingTrades(){
     el.innerHTML=pending.map(t=>`
       <div style="background:#1a1a2e;border:1px solid #333;border-radius:10px;padding:12px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <strong style="color:var(--accent2)">${t.from}</strong> wants to trade
+          <strong style="color:var(--accent2)">${t.from}</strong>
           <span style="font-size:.72rem;color:var(--muted)">${new Date(t.timestamp).toLocaleDateString()}</span>
         </div>
         <div style="margin-bottom:6px">
@@ -1138,32 +1198,149 @@ function checkIncomingTrades(){
           </div>
         </div>
         <div style="font-size:.75rem;color:var(--muted);margin-bottom:8px">They want: <em>${t.wanting}</em></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-green" style="flex:1;padding:7px" onclick="acceptTrade('${t.id}','${t.from}')">✅ Accept</button>
-          <button class="btn btn-red" style="flex:1;padding:7px" onclick="declineTrade('${t.id}','${t.from}')">❌ Decline</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn btn-green" style="padding:10px;font-size:.9rem" onclick="openTradeRoom('${t.id}','${t.from}',${JSON.stringify(t.offering).replace(/'/g,"&#39;")})">🔄 Open Trade Room</button>
+          <button class="btn btn-red" style="padding:10px;font-size:.9rem" onclick="declineTrade('${t.id}','${t.from}')">❌ Decline</button>
         </div>
       </div>
     `).join('');
   });
 }
 
-function acceptTrade(tradeId, fromUser){
+// ── TRADE ROOM ────────────────────────────────────────────────────────────────
+function openTradeRoom(tradeId, partner, theirOffering){
+  currentTradeRoom={tradeId,partner,myCards:[],theirCards:theirOffering||[],myReady:false,theirReady:false};
+  document.getElementById('tradeRoomWith').textContent='Trading with: '+partner;
+  document.getElementById('mySideLabel').textContent='Your Cards';
+  document.getElementById('theirSideLabel').textContent=partner+"'s Cards";
+  document.getElementById('tradeRoomOverlay').classList.remove('hidden');
+  renderTradeRoom();
+  // Start polling for updates
+  if(tradeRoomInterval) clearInterval(tradeRoomInterval);
+  tradeRoomInterval=setInterval(pollTradeRoom,2000);
+  // Save room state to Firebase
   const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
-  db.ref('trades/'+safeKey+'/'+tradeId).once('value').then(snap=>{
-    const trade=snap.val();
-    if(!trade||trade.status!=='pending'){notify('Trade no longer available');return;}
-    // Add offered cards to your inventory
-    trade.offering.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
-    G.trades++;save();checkAchievements();renderInv();renderStats();
-    // Mark as accepted in Firebase
-    db.ref('trades/'+safeKey+'/'+tradeId+'/status').set('accepted');
-    // Notify sender
-    const senderKey=fromUser.replace(/[.#$\[\]]/g,'_');
-    db.ref('notifications/'+senderKey).push({msg:G.username+' accepted your trade request!',time:Date.now()});
-    notify('✅ Trade accepted! Cards added to your inventory');
-    checkIncomingTrades();
-    checkDailyProgress();
+  db.ref('traderooms/'+tradeId).set({
+    player1:G.username,player2:partner,
+    p1Cards:[],p2Cards:theirOffering||[],
+    p1Ready:false,p2Ready:false,status:'open',created:Date.now()
   });
+}
+
+function renderTradeRoom(){
+  if(!currentTradeRoom)return;
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  
+  // My cards
+  const myEl=document.getElementById('myTradeCards');
+  myEl.innerHTML=currentTradeRoom.myCards.map(c=>`
+    <div class="tr-card" onclick="removeFromRoom('${c.id}')">
+      <div class="tr-icon">${c.icon}</div>
+      <div class="tr-name">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem">${c.rarity}</span>
+    </div>`).join('')||'<p style="color:#555;font-size:.75rem">Add cards below</p>';
+  
+  // Their cards
+  const theirEl=document.getElementById('theirTradeCards');
+  theirEl.innerHTML=currentTradeRoom.theirCards.map(c=>`
+    <div class="tr-card" style="cursor:default">
+      <div class="tr-icon">${c.icon}</div>
+      <div class="tr-name">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem">${c.rarity}</span>
+    </div>`).join('')||'<p style="color:#555;font-size:.75rem">Waiting...</p>';
+
+  // Inventory picker
+  const invEl=document.getElementById('myTRInv');
+  invEl.innerHTML=G.inv.filter(c=>!currentTradeRoom.myCards.find(m=>String(m.id)===String(c.id))).map(c=>`
+    <div onclick="addToRoom('${c.id}')" style="cursor:pointer;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:5px;text-align:center;width:60px;transition:all .15s" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='#333'">
+      <div style="font-size:1.1rem">${c.icon}</div>
+      <div style="font-size:.58rem">${c.name}</div>
+    </div>`).join('');
+
+  // Ready buttons
+  const myBtn=document.getElementById('myReadyBtn');
+  const theirBtn=document.getElementById('theirReadyBtn');
+  myBtn.className='ready-btn '+(currentTradeRoom.myReady?'is-ready':'not-ready');
+  myBtn.textContent=currentTradeRoom.myReady?'✅ Ready!':'⚡ Ready Up';
+  theirBtn.textContent=currentTradeRoom.theirReady?'✅ They are ready!':'⏳ Waiting for '+currentTradeRoom.partner+'...';
+  theirBtn.className='ready-btn '+(currentTradeRoom.theirReady?'is-ready':'not-ready');
+
+  // Status
+  const statusEl=document.getElementById('tradeStatusBar');
+  const finalEl=document.getElementById('finalConfirm');
+  if(currentTradeRoom.myReady&&currentTradeRoom.theirReady){
+    statusEl.textContent='⚡ Both players ready!';
+    statusEl.style.color='#f5c518';
+    finalEl.style.display='';
+  } else {
+    statusEl.textContent=currentTradeRoom.myReady?'Waiting for '+currentTradeRoom.partner+'...':'Click Ready when you have set your cards';
+    statusEl.style.color='#aaa';
+    finalEl.style.display='none';
+  }
+}
+
+function addToRoom(id){
+  if(!currentTradeRoom)return;
+  if(currentTradeRoom.myCards.length>=5){notify('Max 5 cards');return;}
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(c){currentTradeRoom.myCards.push(c);currentTradeRoom.myReady=false;pushRoomState();renderTradeRoom();}
+}
+
+function removeFromRoom(id){
+  if(!currentTradeRoom)return;
+  currentTradeRoom.myCards=currentTradeRoom.myCards.filter(c=>String(c.id)!==String(id));
+  currentTradeRoom.myReady=false;pushRoomState();renderTradeRoom();
+}
+
+function pushRoomState(){
+  if(!currentTradeRoom)return;
+  const isP1=currentTradeRoom.partner!==undefined;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('traderooms/'+currentTradeRoom.tradeId).update({
+    p1Cards:currentTradeRoom.myCards,
+    p1Ready:currentTradeRoom.myReady
+  });
+}
+
+function toggleReady(){
+  if(!currentTradeRoom)return;
+  currentTradeRoom.myReady=!currentTradeRoom.myReady;
+  db.ref('traderooms/'+currentTradeRoom.tradeId).update({p1Ready:currentTradeRoom.myReady});
+  renderTradeRoom();
+}
+
+function pollTradeRoom(){
+  if(!currentTradeRoom)return;
+  db.ref('traderooms/'+currentTradeRoom.tradeId).once('value').then(snap=>{
+    const room=snap.val();
+    if(!room)return;
+    currentTradeRoom.theirReady=room.p2Ready||false;
+    currentTradeRoom.theirCards=room.p2Cards||currentTradeRoom.theirCards;
+    renderTradeRoom();
+  });
+}
+
+function confirmTrade(){
+  if(!currentTradeRoom||!currentTradeRoom.myReady||!currentTradeRoom.theirReady)return;
+  // Swap cards
+  currentTradeRoom.myCards.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  currentTradeRoom.theirCards.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
+  G.trades++;
+  // Mark trade done
+  db.ref('traderooms/'+currentTradeRoom.tradeId+'/status').set('completed');
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('trades/'+safeKey+'/'+currentTradeRoom.tradeId+'/status').set('completed');
+  const partnerKey=currentTradeRoom.partner.replace(/[.#$\[\]]/g,'_');
+  db.ref('notifications/'+partnerKey).push({msg:G.username+' accepted the trade! Check your inventory.',time:Date.now()});
+  save();checkAchievements();renderInv();renderStats();checkDailyProgress();
+  cancelTradeRoom();
+  notify('✅ Trade complete! Cards swapped!');
+}
+
+function cancelTradeRoom(){
+  if(tradeRoomInterval)clearInterval(tradeRoomInterval);
+  currentTradeRoom=null;
+  document.getElementById('tradeRoomOverlay').classList.add('hidden');
 }
 
 function declineTrade(tradeId, fromUser){
