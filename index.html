@@ -160,6 +160,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
   <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
   <button class="nb" id="nav-odds" onclick="show('odds')">🎲 Odds</button>
+  <button class="nb" id="nav-trademachine" onclick="show('trademachine')">🔄 Trade Machine</button>
   <div class="coins-badge">💰 <span id="coinDisplay">0</span></div>
 </nav>
 
@@ -267,6 +268,57 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     </table>
   </div>
   <p style="font-size:.78rem;color:var(--muted)">⚠️ The Cosmic card is one-of-a-kind — only one exists per pack type. If you pull it, you're the luckiest player alive.</p>
+</div>
+
+<!-- TRADE MACHINE PAGE -->
+<div class="page" id="page-trademachine">
+  <div class="section-title">🔄 Card Trade Machine</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Propose card-for-card trades with AI collectors. They'll accept if the value is fair!</p>
+  
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-bottom:16px">
+    <!-- YOUR SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Offer</div>
+      <div id="tmSendList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from your inventory below</p>
+      </div>
+      <div style="color:#aaa;font-size:.75rem;margin-bottom:6px">Your inventory:</div>
+      <div id="tmInvGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+    
+    <div style="font-size:2rem;color:var(--accent2);padding-top:28px;text-align:center">⇌</div>
+    
+    <!-- AI SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Receive</div>
+      <div id="tmRecvList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from AI collection below</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="color:#aaa;font-size:.75rem">AI Collector:</div>
+        <button class="btn-sm" style="font-size:.72rem;padding:4px 10px" onclick="switchAICollector()">🔄 Switch</button>
+      </div>
+      <div id="tmAIGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+  </div>
+  
+  <!-- Trade eval -->
+  <div id="tmEval" style="background:#111;border-radius:10px;padding:12px;margin-bottom:14px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:.85rem">Your value: <strong id="tmYourVal">0</strong></div>
+      <div style="font-size:.85rem">Their value: <strong id="tmTheirVal">0</strong></div>
+      <div id="tmVerdict" style="font-size:.85rem;font-weight:700"></div>
+    </div>
+    <div style="background:#222;border-radius:6px;height:10px;margin-top:8px;overflow:hidden">
+      <div id="tmBar" style="height:10px;border-radius:6px;transition:width .3s,background .3s"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button class="btn" id="tmExecuteBtn" onclick="executeTM()" disabled>✅ Propose Trade</button>
+    <button class="btn-sm" onclick="clearTM()">❌ Clear</button>
+  </div>
+  <div id="tmMsg" style="margin-top:10px;font-size:.85rem"></div>
 </div>
 
 <!-- LEADERBOARD -->
@@ -483,6 +535,164 @@ function init(){
   if(G.username) document.getElementById('usernameInput').value=G.username;
 }
 
+// ── CARD TRADE MACHINE ───────────────────────────────────────────────────────
+const AI_COLLECTORS = [
+  {name:'CardKing99',desc:'Loves Mythics & Gods'},
+  {name:'MythicHunter',desc:'Only wants rare cards'},
+  {name:'PackMaster',desc:'Collects everything'},
+  {name:'TheLegend',desc:'Specializes in Legendaries'},
+  {name:'CosmicChaser',desc:'Hunting the Cosmic card'},
+];
+let currentAI = 0;
+let aiCollection = [];
+let tmSending = [];
+let tmReceiving = [];
+
+const RARITY_VALS = {common:10,rare:85,epic:260,legendary:470,mythic:950,god:2600,cosmic:50000};
+
+function genAICollection(){
+  const all=PACKS.flatMap(p=>p.cards);
+  const pool=[];
+  for(let i=0;i<12;i++){
+    const base=all[Math.floor(Math.random()*all.length)];
+    pool.push({...base,id:'ai_'+Date.now()+i});
+  }
+  return pool;
+}
+
+function initTM(){
+  aiCollection=genAICollection();
+  tmSending=[];tmReceiving=[];
+  renderTMInv();renderTMAI();renderTMSides();updateTMEval();
+}
+
+function switchAICollector(){
+  currentAI=(currentAI+1)%AI_COLLECTORS.length;
+  aiCollection=genAICollection();
+  tmReceiving=[];
+  renderTMAI();renderTMSides();updateTMEval();
+  const ai=AI_COLLECTORS[currentAI];
+  document.querySelector('#page-trademachine .empty') && 0;
+  notify('Switched to '+ai.name+' — '+ai.desc);
+}
+
+function renderTMInv(){
+  const grid=document.getElementById('tmInvGrid');
+  if(!G.inv.length){grid.innerHTML='<p class="empty">No cards in inventory</p>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=G.inv.map((c,i)=>{
+    const staged=tmSending.find(s=>String(s.id)===String(c.id));
+    return `<div onclick="tmToggleSend('${c.id}')" style="cursor:pointer;background:${staged?'#2a1a4a':'#1a1a2e'};border:1px solid ${staged?'#a855f7':'#333'};border-radius:8px;padding:8px;text-align:center;transition:all .15s">
+      <div style="font-size:1.4rem">${c.icon}</div>
+      <div style="font-size:.68rem;font-weight:700;margin-top:2px">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTMAI(){
+  const grid=document.getElementById('tmAIGrid');
+  const ai=AI_COLLECTORS[currentAI];
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML='<div style="grid-column:1/-1;color:#888;font-size:.72rem;margin-bottom:4px">'+ai.name+' collection:</div>'+
+    aiCollection.map(c=>{
+    const staged=tmReceiving.find(s=>String(s.id)===String(c.id));
+    return `<div onclick="tmToggleRecv('${c.id}')" style="cursor:pointer;background:${staged?'#1a2a1a':'#1a1a2e'};border:1px solid ${staged?'#10b981':'#333'};border-radius:8px;padding:8px;text-align:center;transition:all .15s">
+      <div style="font-size:1.4rem">${c.icon}</div>
+      <div style="font-size:.68rem;font-weight:700;margin-top:2px">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+    </div>`;
+  }).join('');
+}
+
+function tmToggleSend(id){
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(!c)return;
+  const idx=tmSending.findIndex(s=>String(s.id)===String(id));
+  if(idx!==-1)tmSending.splice(idx,1);
+  else if(tmSending.length<5)tmSending.push(c);
+  else{notify('Max 5 cards per trade');return;}
+  renderTMInv();renderTMSides();updateTMEval();
+}
+
+function tmToggleRecv(id){
+  const c=aiCollection.find(c=>String(c.id)===String(id));
+  if(!c)return;
+  const idx=tmReceiving.findIndex(s=>String(s.id)===String(id));
+  if(idx!==-1)tmReceiving.splice(idx,1);
+  else if(tmReceiving.length<5)tmReceiving.push(c);
+  else{notify('Max 5 cards per trade');return;}
+  renderTMAI();renderTMSides();updateTMEval();
+}
+
+function renderTMSides(){
+  const sendEl=document.getElementById('tmSendList');
+  const recvEl=document.getElementById('tmRecvList');
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  sendEl.innerHTML=tmSending.length?tmSending.map(c=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#2a1a4a;border-radius:6px;margin-bottom:4px;font-size:.78rem">
+      <span>${c.icon}</span><span style="flex:1">${c.name}</span>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+      <button onclick="tmToggleSend('${c.id}')" style="background:none;border:none;color:#a855f7;cursor:pointer">✕</button>
+    </div>`).join(''):'<p class="empty">Click cards from your inventory below</p>';
+  recvEl.innerHTML=tmReceiving.length?tmReceiving.map(c=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a2a1a;border-radius:6px;margin-bottom:4px;font-size:.78rem">
+      <span>${c.icon}</span><span style="flex:1">${c.name}</span>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+      <button onclick="tmToggleRecv('${c.id}')" style="background:none;border:none;color:#10b981;cursor:pointer">✕</button>
+    </div>`).join(''):'<p class="empty">Click cards from AI collection below</p>';
+  document.getElementById('tmExecuteBtn').disabled=!(tmSending.length&&tmReceiving.length);
+}
+
+function cardValue(c){return RARITY_VALS[c.rarity]||c.val||10;}
+
+function updateTMEval(){
+  const evalEl=document.getElementById('tmEval');
+  if(!tmSending.length&&!tmReceiving.length){evalEl.style.display='none';return;}
+  evalEl.style.display='';
+  const myVal=tmSending.reduce((a,c)=>a+cardValue(c),0);
+  const theirVal=tmReceiving.reduce((a,c)=>a+cardValue(c),0);
+  document.getElementById('tmYourVal').textContent=myVal;
+  document.getElementById('tmTheirVal').textContent=theirVal;
+  const ratio=theirVal>0?myVal/theirVal:0;
+  const pct=Math.min(100,Math.round(ratio*60));
+  const bar=document.getElementById('tmBar');
+  const verdict=document.getElementById('tmVerdict');
+  bar.style.width=pct+'%';
+  if(pct>=55){bar.style.background='#10b981';verdict.textContent='✅ Fair deal — likely accepted';verdict.style.color='#10b981';}
+  else if(pct>=35){bar.style.background='#f5c518';verdict.textContent='🤔 Low offer — might get rejected';verdict.style.color='#f5c518';}
+  else{bar.style.background='#ef4444';verdict.textContent='❌ Too low — they will say no';verdict.style.color='#ef4444';}
+}
+
+function executeTM(){
+  if(!tmSending.length||!tmReceiving.length){notify('Add cards on both sides!');return;}
+  const myVal=tmSending.reduce((a,c)=>a+cardValue(c),0);
+  const theirVal=tmReceiving.reduce((a,c)=>a+cardValue(c),0);
+  const ratio=theirVal>0?myVal/theirVal:0;
+  const msgEl=document.getElementById('tmMsg');
+  
+  if(ratio<0.35){
+    msgEl.innerHTML='<span style="color:#ef4444">❌ '+AI_COLLECTORS[currentAI].name+' rejected your offer! Offer more value.</span>';
+    return;
+  }
+  if(ratio<0.55&&Math.random()<0.4){
+    msgEl.innerHTML='<span style="color:#f5c518">🤔 '+AI_COLLECTORS[currentAI].name+' countered — they want a bit more.</span>';
+    return;
+  }
+  // Trade accepted!
+  tmSending.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  tmReceiving.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
+  G.trades=(G.trades||0)+1;
+  tmSending=[];tmReceiving=[];
+  aiCollection=genAICollection();
+  save();checkAchievements();renderInv();renderStats();renderTMInv();renderTMAI();renderTMSides();updateTMEval();
+  msgEl.innerHTML='<span style="color:#10b981">✅ Trade accepted! '+AI_COLLECTORS[currentAI].name+' is happy with the deal.</span>';
+  notify('🔄 Trade complete!');
+  checkDailyProgress();
+}
+
+function clearTM(){tmSending=[];tmReceiving=[];renderTMInv();renderTMAI();renderTMSides();updateTMEval();document.getElementById('tmMsg').textContent='';}
+
 function hashPass(s){
   // Simple hash for password (not cryptographic but prevents casual theft)
   let h=0;
@@ -571,6 +781,7 @@ function show(page){
   if(page==='trade')renderTrade();
   if(page==='fuse')renderFuseSlots();
   if(page==='leaderboard')renderLB('coins');
+  if(page==='trademachine')initTM();
 }
 
 // ── COINS ─────────────────────────────────────────────────────────────────────
