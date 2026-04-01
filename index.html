@@ -476,12 +476,11 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function init(){
-  load();
-  if(!G.username){
-    document.getElementById('usernameModal').classList.remove('hidden');
-    return;
-  }
-  startGame();
+  // Always show login - Firebase is source of truth, not localStorage
+  document.getElementById('usernameModal').classList.remove('hidden');
+  // Pre-fill username if we have it cached locally (convenience only)
+  loadFromLocal();
+  if(G.username) document.getElementById('usernameInput').value=G.username;
 }
 
 function hashPass(s){
@@ -530,8 +529,15 @@ function setUsername(){
       startGame();
     }
   }).catch(()=>{
-    G.username=name;
-    G.passHash=passHash;
+    // Firebase offline - use local cache if username matches
+    loadFromLocal();
+    if(G.username===name){
+      notify('⚠️ Offline mode - using local save');
+    } else {
+      G={username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
+    }
     save();
     document.getElementById('usernameModal').classList.add('hidden');
     startGame();
