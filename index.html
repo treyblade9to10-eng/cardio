@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Card.io 🃏</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0f;--card:#1a1a1f;--card2:#242430;--accent:#7c3aed;--accent2:#a855f7;--gold:#f5c518;--green:#10b981;--red:#ef4444;--text:#e2e8f0;--muted:#64748b}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* NAV */
+.navbar{background:#111118;border-bottom:1px solid #2a2a3a;position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 16px;gap:0;overflow-x:auto}
+.nav-logo{color:var(--accent2);font-weight:800;font-size:1.1rem;padding:12px 16px 12px 0;white-space:nowrap}
+.nb{background:none;border:none;color:var(--muted);padding:12px 14px;font-size:.82rem;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;font-weight:600}
+.nb:hover{color:var(--text)}.nb.active{color:var(--accent2);border-bottom-color:var(--accent2)}
+.coins-badge{margin-left:auto;background:#1e1e2e;border:1px solid #333;border-radius:20px;padding:6px 14px;font-size:.85rem;font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0}
+/* PAGES */
+.page{display:none;max-width:1100px;margin:0 auto;padding:20px}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* CARDS */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.grid-2{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card-box{background:var(--card);border-radius:12px;padding:16px;border:1px solid #2a2a3a}
+/* PACK CARDS */
+.pack{background:var(--card);border-radius:14px;padding:18px;border:1px solid #333;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden}
+.pack:hover{transform:translateY(-4px);border-color:var(--accent)}
+.pack-icon{font-size:2.4rem;margin-bottom:8px}
+.pack-name{font-weight:700;font-size:.95rem;margin-bottom:4px}
+.pack-desc{font-size:.75rem;color:var(--muted);margin-bottom:10px}
+.pack-price{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;font-weight:700;cursor:pointer;width:100%;transition:background .15s}
+.pack-price:hover{background:var(--accent2)}
+/* COLLECTION CARDS */
+.ccard{background:var(--card2);border-radius:10px;padding:12px;border:1px solid #333;position:relative;transition:all .15s}
+.ccard:hover{border-color:var(--accent)}
+.ccard-icon{font-size:2rem;margin-bottom:6px;text-align:center}
+.ccard-name{font-weight:700;font-size:.82rem;text-align:center;margin-bottom:3px}
+.ccard-type{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:4px}
+.ccard-val{font-size:.75rem;color:var(--gold);text-align:center;font-weight:600}
+.rarity-badge{position:absolute;top:6px;right:6px;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px}
+.r-common{background:#374151;color:#9ca3af}
+.r-rare{background:#1e3a5f;color:#60a5fa}
+.r-epic{background:#2d1b69;color:#a78bfa}
+.r-legendary{background:#451a03;color:#f59e0b}
+.r-mythic{background:#450a0a;color:#f87171;animation:glow 2s infinite alternate}
+@keyframes glow{from{box-shadow:0 0 4px #f87171}to{box-shadow:0 0 12px #f87171}}
+/* PACK OPENING MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:#1a1a2e;border-radius:16px;padding:28px;max-width:500px;width:100%;border:1px solid var(--accent);text-align:center;max-height:90vh;overflow-y:auto}
+.modal h2{color:var(--accent2);font-size:1.2rem;margin-bottom:16px}
+.pull-card{background:var(--card2);border-radius:12px;padding:20px;margin:8px 0;border:2px solid #333;animation:popIn .3s ease}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.pull-card .big-icon{font-size:3rem;margin-bottom:8px}
+.pull-card .pull-name{font-weight:700;font-size:1rem;margin-bottom:4px}
+.pull-card .pull-val{color:var(--gold);font-size:.85rem}
+/* AUCTION */
+.auction-item{background:var(--card);border-radius:12px;padding:16px;border:1px solid #333;margin-bottom:12px}
+.auction-timer{color:var(--red);font-weight:700;font-size:.9rem}
+.auction-timer.safe{color:var(--green)}
+.bid-row{display:flex;gap:8px;margin-top:10px}
+.bid-input{flex:1;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.9rem}
+/* ACHIEVEMENTS */
+.achieve{background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid #333;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.achieve-icon{font-size:1.8rem;flex-shrink:0}
+.achieve-info{flex:1}
+.achieve-name{font-weight:700;font-size:.88rem}
+.achieve-desc{font-size:.75rem;color:var(--muted);margin-top:2px}
+.achieve-reward{color:var(--gold);font-size:.78rem;font-weight:600}
+.achieve.done{border-color:var(--gold);background:#1e1a00}
+.achieve.done .achieve-icon{filter:drop-shadow(0 0 6px var(--gold))}
+/* PROGRESS BAR */
+.prog-wrap{background:#2a2a3a;border-radius:4px;height:6px;margin-top:6px}
+.prog-bar{height:6px;border-radius:4px;background:var(--accent);transition:width .3s}
+/* BTNS */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--accent2)}
+.btn-sm{background:#2a2a3a;color:var(--text);border:1px solid #444;border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer}
+.btn-sm:hover{background:#333}
+.btn-green{background:var(--green)}
+.btn-green:hover{background:#059669}
+.btn-red{background:var(--red)}
+.btn-red:hover{background:#dc2626}
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.stat-c{background:var(--card);border-radius:10px;padding:12px 16px;flex:1;min-width:100px;text-align:center;border:1px solid #2a2a3a}
+.stat-n{font-size:1.6rem;font-weight:800;color:var(--accent2)}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:2px}
+/* DAILY */
+.daily-challenge{background:var(--card);border-radius:10px;padding:14px;border:1px solid #2a2a3a;margin-bottom:10px}
+.daily-title{font-weight:700;font-size:.88rem;margin-bottom:6px}
+.daily-reward{color:var(--gold);font-size:.78rem}
+/* TRADE */
+.trade-area{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.trade-area{grid-template-columns:1fr}}
+input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.88rem;width:100%}
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:8px;margin-bottom:6px}
+.lb-rank{font-size:1rem;font-weight:800;width:28px;color:var(--muted)}
+.lb-rank.top{color:var(--gold)}
+.lb-name{flex:1;font-weight:600;font-size:.88rem}
+.lb-val{color:var(--gold);font-size:.85rem;font-weight:700}
+/* MISC */
+.empty{color:var(--muted);font-style:italic;font-size:.85rem;text-align:center;padding:20px}
+.tag{display:inline-block;background:#2a2a3a;border-radius:6px;padding:2px 8px;font-size:.72rem;color:var(--muted)}
+.notification{position:fixed;bottom:20px;right:20px;background:#1a1a2e;border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:.85rem;z-index:300;animation:slideIn .3s ease;max-width:280px}
+.notification.hidden{display:none}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:none;opacity:1}}
+.fusion-slot{background:#1a1a2e;border:2px dashed #333;border-radius:10px;padding:16px;text-align:center;min-height:80px;cursor:pointer;transition:border-color .15s}
+.fusion-slot:hover{border-color:var(--accent)}
+.fusion-slot.filled{border-color:var(--accent);border-style:solid}
+</style>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div class="notification hidden" id="notif"></div>
+
+<!-- PACK OPENING MODAL -->
+<div class="modal-overlay hidden" id="packModal">
+  <div class="modal">
+    <h2 id="modalTitle">Opening Pack...</h2>
+    <div id="modalCards"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn" onclick="closeModal()">✅ Keep Cards</button>
+      <button class="btn btn-red" onclick="sellAllPulled()">💰 Sell All</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-logo">🃏 Card.io</div>
+  <button class="nb active" id="nav-shop" onclick="show('shop')">🏪 Shop</button>
+  <button class="nb" id="nav-inventory" onclick="show('inventory')">🎒 Inventory</button>
+  <button class="nb" id="nav-auction" onclick="show('auction')">⏱ Auction</button>
+  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade</button>
+  <button class="nb" id="nav-fuse" onclick="show('fuse')">⚗️ Fuse</button>
+  <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
+  <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
+  <div class="coins-badge">💰 <span id="coinDisplay">0</span></div>
+</nav>
+
+<!-- SHOP -->
+<div class="page active" id="page-shop">
+  <div class="stats-bar">
+    <div class="stat-c"><div class="stat-n" id="stat-cards">0</div><div class="stat-l">Cards</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-packs">0</div><div class="stat-l">Packs Opened</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-mythics">0</div><div class="stat-l">Mythics</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-worth">0</div><div class="stat-l">Collection Value</div></div>
+  </div>
+  <div class="section-title">🗓 Daily Challenges</div>
+  <div id="dailyChallenges"></div>
+  <div class="section-title" style="margin-top:20px">🏪 Card Packs</div>
+  <div class="grid grid-3" id="packGrid"></div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page" id="page-inventory">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="section-title" style="margin:0">🎒 Your Collection</div>
+    <button class="btn-sm" onclick="sortInv('val')">Sort by Value</button>
+    <button class="btn-sm" onclick="sortInv('rarity')">Sort by Rarity</button>
+    <button class="btn-sm" onclick="sortInv('type')">Sort by Type</button>
+    <button class="btn btn-red" style="margin-left:auto;padding:7px 14px;font-size:.82rem" onclick="sellAll('common')">Sell Commons</button>
+    <button class="btn btn-red" style="padding:7px 14px;font-size:.82rem" onclick="sellAll('legendary')">Sell Legendaries</button>
+  </div>
+  <div class="grid grid-2" id="invGrid"></div>
+</div>
+
+<!-- AUCTION -->
+<div class="page" id="page-auction">
+  <div class="section-title">⏱ Live Auction House</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Bid on rare cards before time runs out. AI bidders will compete against you!</p>
+  <div id="auctionList"></div>
+</div>
+
+<!-- TRADE -->
+<div class="page" id="page-trade">
+  <div class="section-title">🔄 Trading Center</div>
+  <div class="trade-area">
+    <div class="card-box">
+      <div style="font-weight:700;margin-bottom:10px">📤 Send Package</div>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:10px">Stage up to 5 cards to trade</p>
+      <div id="stageArea"></div>
+      <div style="margin-top:10px;font-size:.8rem;color:var(--muted);margin-bottom:6px">Stage from inventory:</div>
+      <div id="stageSelect" style="max-height:200px;overflow-y:auto"></div>
+      <div style="margin-top:12px">
+        <button class="btn" onclick="genCode()" style="width:100%">📦 Generate Code</button>
+        <div id="myCode" style="margin-top:8px;font-size:.8rem;color:var(--muted)"></div>
+      </div>
+    </div>
+    <div class="card-box">
+      <div style="font-weight:700;margin-bottom:10px">📥 Receive Package</div>
+      <input type="text" id="tradeCodeInput" placeholder="Enter trade code..." style="margin-bottom:10px"/>
+      <button class="btn btn-green" onclick="claimCode()" style="width:100%">🎁 Claim Cards</button>
+      <div id="claimResult" style="margin-top:10px;font-size:.82rem"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FUSE -->
+<div class="page" id="page-fuse">
+  <div class="section-title">⚗️ Card Fusion Lab</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Combine 3 cards of the same rarity to fuse them into a higher rarity card!</p>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div class="fusion-slot" id="fslot-0" onclick="openFuseSelect(0)"><div style="color:var(--muted);font-size:.8rem">+ Card 1</div></div>
+    <div class="fusion-slot" id="fslot-1" onclick="openFuseSelect(1)"><div style="color:var(--muted);font-size:.8rem">+ Card 2</div></div>
+    <div class="fusion-slot" id="fslot-2" onclick="openFuseSelect(2)"><div style="color:var(--muted);font-size:.8rem">+ Card 3</div></div>
+    <div style="font-size:1.5rem">→</div>
+    <div class="fusion-slot" id="fslot-result" style="pointer-events:none;border-color:#444"><div style="color:var(--muted);font-size:.8rem">Result</div></div>
+  </div>
+  <button class="btn" onclick="executeFuse()" id="fuseBtn" disabled>⚗️ Fuse Cards</button>
+  <div id="fuseMsg" style="margin-top:12px;font-size:.85rem"></div>
+  <div style="margin-top:16px;font-size:.8rem;color:var(--muted)">
+    3 Commons → 1 Rare &nbsp;|&nbsp; 3 Rares → 1 Epic &nbsp;|&nbsp; 3 Epics → 1 Legendary &nbsp;|&nbsp; 3 Legendaries → 1 Mythic
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="page" id="page-achieve">
+  <div class="section-title">🏆 Achievements</div>
+  <div id="achieveList"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="page" id="page-leaderboard">
+  <div class="section-title">📊 Global Rankings</div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="btn-sm" onclick="renderLB('coins')">💰 By Coins</button>
+    <button class="btn-sm" onclick="renderLB('cards')">🃏 By Cards</button>
+    <button class="btn-sm" onclick="renderLB('mythics')">🔥 By Mythics</button>
+  </div>
+  <div id="lbList"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const PACKS = [
+  {id:'sports',name:'Sports Pack',icon:'🏀',desc:'Basketball, Football, Soccer stars',price:100,
+   cards:[
+    {name:'LeBron James',icon:'👑',type:'sports',rarity:'legendary',val:450},
+    {name:'Stephen Curry',icon:'🎯',type:'sports',rarity:'legendary',val:420},
+    {name:'Patrick Mahomes',icon:'🏈',type:'sports',rarity:'epic',val:280},
+    {name:'Lionel Messi',icon:'⚽',type:'sports',rarity:'mythic',val:900},
+    {name:'Giannis',icon:'🦌',type:'sports',rarity:'legendary',val:380},
+    {name:'Ja Morant',icon:'✈️',type:'sports',rarity:'epic',val:220},
+    {name:'Rookie SG',icon:'🏃',type:'sports',rarity:'rare',val:80},
+    {name:'Bench Warmer',icon:'🪑',type:'sports',rarity:'common',val:15},
+    {name:'Practice Player',icon:'🏋️',type:'sports',rarity:'common',val:10},
+    {name:'Victor Wembanyama',icon:'🛸',type:'sports',rarity:'mythic',val:850},
+  ]},
+  {id:'fantasy',name:'Fantasy Pack',icon:'🧙',desc:'Dragons, wizards & mythical beasts',price:150,
+   cards:[
+    {name:'Ancient Dragon',icon:'🐉',type:'fantasy',rarity:'mythic',val:1000},
+    {name:'Dark Wizard',icon:'🧙‍♂️',type:'fantasy',rarity:'legendary',val:500},
+    {name:'Phoenix',icon:'🔥',type:'fantasy',rarity:'legendary',val:480},
+    {name:'Griffin Knight',icon:'🦅',type:'fantasy',rarity:'epic',val:250},
+    {name:'Forest Elf',icon:'🧝',type:'fantasy',rarity:'epic',val:200},
+    {name:'River Troll',icon:'👹',type:'fantasy',rarity:'rare',val:90},
+    {name:'Cave Goblin',icon:'👺',type:'fantasy',rarity:'rare',val:70},
+    {name:'Wood Sprite',icon:'🌿',type:'fantasy',rarity:'common',val:12},
+    {name:'Stone Imp',icon:'🪨',type:'fantasy',rarity:'common',val:8},
+    {name:'Celestial Angel',icon:'😇',type:'fantasy',rarity:'mythic',val:950},
+  ]},
+  {id:'tech',name:'Tech Pack',icon:'🤖',desc:'AI, robots & futuristic gadgets',price:120,
+   cards:[
+    {name:'Quantum AI',icon:'🧠',type:'tech',rarity:'mythic',val:880},
+    {name:'War Robot',icon:'🤖',type:'tech',rarity:'legendary',val:460},
+    {name:'Hacker Ghost',icon:'👾',type:'tech',rarity:'epic',val:240},
+    {name:'Drone Army',icon:'🚁',type:'tech',rarity:'epic',val:210},
+    {name:'Nanobot',icon:'💉',type:'tech',rarity:'rare',val:85},
+    {name:'Data Core',icon:'💾',type:'tech',rarity:'rare',val:75},
+    {name:'Basic Circuit',icon:'⚡',type:'tech',rarity:'common',val:10},
+    {name:'Broken Chip',icon:'🔌',type:'tech',rarity:'common',val:6},
+    {name:'Cyber Samurai',icon:'⚔️',type:'tech',rarity:'legendary',val:430},
+    {name:'Super Computer',icon:'🖥️',type:'tech',rarity:'mythic',val:920},
+  ]},
+  {id:'nature',name:'Nature Pack',icon:'🌿',desc:'Animals, plants & natural wonders',price:80,
+   cards:[
+    {name:'White Tiger',icon:'🐯',type:'nature',rarity:'legendary',val:400},
+    {name:'Great Whale',icon:'🐋',type:'nature',rarity:'epic',val:230},
+    {name:'Golden Eagle',icon:'🦅',type:'nature',rarity:'epic',val:200},
+    {name:'Volcano',icon:'🌋',type:'nature',rarity:'mythic',val:800},
+    {name:'Northern Lights',icon:'🌌',type:'nature',rarity:'mythic',val:820},
+    {name:'Red Fox',icon:'🦊',type:'nature',rarity:'rare',val:65},
+    {name:'Butterfly',icon:'🦋',type:'nature',rarity:'rare',val:60},
+    {name:'Oak Tree',icon:'🌳',type:'nature',rarity:'common',val:8},
+    {name:'Pebble',icon:'🪨',type:'nature',rarity:'common',val:4},
+    {name:'Crystal Cave',icon:'💎',type:'nature',rarity:'legendary',val:410},
+  ]},
+  {id:'legends',name:'Legends Pack',icon:'⭐',desc:'Icons, gods & historical legends',price:200,
+   cards:[
+    {name:'Zeus',icon:'⚡',type:'legends',rarity:'mythic',val:1100},
+    {name:'Cleopatra',icon:'👸',type:'legends',rarity:'legendary',val:520},
+    {name:'Genghis Khan',icon:'🗡️',type:'legends',rarity:'legendary',val:490},
+    {name:'Da Vinci',icon:'🎨',type:'legends',rarity:'epic',val:300},
+    {name:'Nikola Tesla',icon:'🔬',type:'legends',rarity:'epic',val:280},
+    {name:'Pirate King',icon:'🏴‍☠️',type:'legends',rarity:'rare',val:110},
+    {name:'Knight Templar',icon:'⚔️',type:'legends',rarity:'rare',val:95},
+    {name:'Village Elder',icon:'👴',type:'legends',rarity:'common',val:18},
+    {name:'Town Crier',icon:'📯',type:'legends',rarity:'common',val:12},
+    {name:'Atlantis Lord',icon:'🌊',type:'legends',rarity:'mythic',val:1050},
+  ]},
+  {id:'space',name:'Space Pack',icon:'🚀',desc:'Astronauts, planets & cosmic horrors',price:175,
+   cards:[
+    {name:'Black Hole',icon:'🕳️',type:'space',rarity:'mythic',val:990},
+    {name:'Supernova',icon:'💥',type:'space',rarity:'mythic',val:960},
+    {name:'Galaxy Drifter',icon:'🌌',type:'space',rarity:'legendary',val:510},
+    {name:'Mars Colony',icon:'🔴',type:'space',rarity:'epic',val:260},
+    {name:'Asteroid Belt',icon:'☄️',type:'space',rarity:'epic',val:230},
+    {name:'Moon Walker',icon:'🌙',type:'space',rarity:'rare',val:88},
+    {name:'Satellite',icon:'🛰️',type:'space',rarity:'rare',val:72},
+    {name:'Space Rock',icon:'🪐',type:'space',rarity:'common',val:11},
+    {name:'Stardust',icon:'✨',type:'space',rarity:'common',val:7},
+    {name:'Alien Overlord',icon:'👽',type:'space',rarity:'legendary',val:470},
+  ]}
+];
+
+const RARITY_ORDER = ['common','rare','epic','legendary','mythic'];
+const RARITY_RATES = {common:.55,rare:.28,epic:.12,legendary:.04,mythic:.01};
+const RARITY_UP = {common:'rare',rare:'epic',epic:'legendary',legendary:'mythic'};
+
+const ACHIEVEMENTS = [
+  {id:'first_pull',name:'First Pull',desc:'Open your first pack',icon:'🎉',reward:50,check:s=>s.packsOpened>=1},
+  {id:'collector10',name:'Collector',desc:'Own 10 cards',icon:'🃏',reward:100,check:s=>s.inv.length>=10},
+  {id:'collector50',name:'Hoarder',desc:'Own 50 cards',icon:'📦',reward:300,check:s=>s.inv.length>=50},
+  {id:'rich',name:'Getting Rich',desc:'Earn 1000 coins',icon:'💰',reward:200,check:s=>s.totalEarned>=1000},
+  {id:'big_spender',name:'Big Spender',desc:'Spend 1000 coins on packs',icon:'💸',reward:250,check:s=>s.totalSpent>=1000},
+  {id:'first_mythic',name:'Mythic Hunter',desc:'Pull your first Mythic',icon:'🔥',reward:500,check:s=>s.inv.some(c=>c.rarity==='mythic')},
+  {id:'three_mythics',name:'Mythic Collector',desc:'Own 3 Mythics',icon:'👑',reward:1000,check:s=>s.inv.filter(c=>c.rarity==='mythic').length>=3},
+  {id:'first_fuse',name:'Alchemist',desc:'Fuse 3 cards',icon:'⚗️',reward:150,check:s=>s.fusions>=1},
+  {id:'trade_master',name:'Trade Master',desc:'Complete 5 trades',icon:'🔄',reward:200,check:s=>s.trades>=5},
+  {id:'auction_win',name:'Auction Winner',desc:'Win your first auction',icon:'🏆',reward:300,check:s=>s.auctionWins>=1},
+  {id:'daily5',name:'Daily Player',desc:'Complete 5 daily challenges',icon:'📅',reward:400,check:s=>s.dailiesCompleted>=5},
+  {id:'all_packs',name:'Pack Explorer',desc:'Open every pack type',icon:'🗺️',reward:500,check:s=>Object.keys(s.packsOpenedByType||{}).length>=6},
+];
+
+const AI_PLAYERS = [
+  {name:'CardKing99',coins:5000},{name:'PackMaster',coins:4200},{name:'MythicHunter',coins:3800},
+  {name:'RareFinder',coins:3100},{name:'LuckyDraw',coins:2700},{name:'TheCollector',coins:2200},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let G = {
+  coins:500, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
+  fusions:0, trades:0, auctionWins:0, dailiesCompleted:0,
+  packsOpenedByType:{}, stagedCards:[], lastDaily:null,
+  auctions:[], dailies:[], achDone:[], pendingPulled:[]
+};
+const KEY='cardio_v2';
+const save=()=>localStorage.setItem(KEY,JSON.stringify(G));
+const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function init(){
+  load();
+  if(!G.auctions||!G.auctions.length) G.auctions=genAuctions();
+  checkDailies();
+  renderAll();
+  setInterval(tickAuctions,1000);
+  // Daily login bonus
+  const today=new Date().toDateString();
+  if(G.lastLogin!==today){G.lastLogin=today;G.coins+=50;save();notify('🎁 Daily login bonus! +50 coins');}
+}
+
+function renderAll(){
+  updateCoins();renderStats();renderPacks();renderInv();
+  renderAuctions();renderTrade();renderAchievements();renderLB('coins');
+  renderDailyChallenges();
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function show(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if(page==='trade')renderTrade();
+  if(page==='fuse')renderFuseSlots();
+  if(page==='leaderboard')renderLB('coins');
+}
+
+// ── COINS ─────────────────────────────────────────────────────────────────────
+function updateCoins(){document.getElementById('coinDisplay').textContent=G.coins.toLocaleString();}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function renderStats(){
+  document.getElementById('stat-cards').textContent=G.inv.length;
+  document.getElementById('stat-packs').textContent=G.packsOpened;
+  document.getElementById('stat-mythics').textContent=G.inv.filter(c=>c.rarity==='mythic').length;
+  document.getElementById('stat-worth').textContent=G.inv.reduce((a,c)=>a+c.val,0).toLocaleString();
+}
+
+// ── PACKS ─────────────────────────────────────────────────────────────────────
+function renderPacks(){
+  const grid=document.getElementById('packGrid');
+  grid.innerHTML=PACKS.map(p=>`
+    <div class="pack" onclick="buyPack('${p.id}')">
+      <div class="pack-icon">${p.icon}</div>
+      <div class="pack-name">${p.name}</div>
+      <div class="pack-desc">${p.desc}</div>
+      <button class="pack-price" onclick="event.stopPropagation();buyPack('${p.id}')">💰 ${p.price} coins</button>
+    </div>
+  `).join('');
+}
+
+function buyPack(packId){
+  const pack=PACKS.find(p=>p.id===packId);
+  if(!pack)return;
+  if(G.coins<pack.price){notify('❌ Not enough coins!');return;}
+  G.coins-=pack.price;G.totalSpent+=pack.price;
+  G.packsOpened++;
+  G.packsOpenedByType[packId]=(G.packsOpenedByType[packId]||0)+1;
+  // Pull 5 cards
+  const pulled=[];
+  for(let i=0;i<5;i++) pulled.push(pullCard(pack));
+  G.pendingPulled=[...pulled];
+  save();checkAchievements();updateCoins();renderStats();
+  showPackModal(pack.name,pulled);
+  // Check daily
+  checkDailyProgress();
+}
+
+function pullCard(pack){
+  const r=Math.random();
+  let rarity='common';
+  let cum=0;
+  for(const[rar,rate] of Object.entries(RARITY_RATES)){cum+=rate;if(r<=cum){rarity=rar;break;}}
+  const pool=pack.cards.filter(c=>c.rarity===rarity);
+  const base=pool.length?pool[Math.floor(Math.random()*pool.length)]:{...pack.cards[0]};
+  return {...base,id:Date.now()+Math.random(),packType:pack.id};
+}
+
+function showPackModal(packName,cards){
+  document.getElementById('modalTitle').textContent=`📦 ${packName} — 5 Cards!`;
+  const container=document.getElementById('modalCards');
+  const rarityColor={common:'#374151',rare:'#1e40af',epic:'#4c1d95',legendary:'#92400e',mythic:'#7f1d1d'};
+  container.innerHTML=cards.map((c,i)=>`
+    <div class="pull-card" style="border-color:${rarityColor[c.rarity]||'#333'};animation-delay:${i*.1}s">
+      <div class="big-icon">${c.icon}</div>
+      <div class="pull-name">${c.name}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin:2px 0">${c.type} · <span style="color:${rarityColor[c.rarity]};text-transform:capitalize;font-weight:700">${c.rarity}</span></div>
+      <div class="pull-val">💰 ${c.val} coins</div>
+    </div>
+  `).join('');
+  document.getElementById('packModal').classList.remove('hidden');
+}
+
+function closeModal(){
+  G.inv.push(...G.pendingPulled);
+  G.pendingPulled=[];
+  save();checkAchievements();renderInv();renderStats();
+  document.getElementById('packModal').classList.add('hidden');
+  notify(`🃏 ${5} cards added to inventory!`);
+}
+
+function sellAllPulled(){
+  const earned=G.pendingPulled.reduce((a,c)=>a+c.val,0);
+  G.coins+=earned;G.totalEarned+=earned;
+  G.pendingPulled=[];
+  save();updateCoins();renderStats();
+  document.getElementById('packModal').classList.add('hidden');
+  notify(`💰 Sold all for ${earned} coins!`);
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────────────────────
+function renderInv(sortBy='val'){
+  const grid=document.getElementById('invGrid');
+  if(!G.inv.length){grid.innerHTML='<p class="empty">No cards yet — open some packs!</p>';return;}
+  let sorted=[...G.inv];
+  if(sortBy==='val') sorted.sort((a,b)=>b.val-a.val);
+  if(sortBy==='rarity') sorted.sort((a,b)=>RARITY_ORDER.indexOf(b.rarity)-RARITY_ORDER.indexOf(a.rarity));
+  if(sortBy==='type') sorted.sort((a,b)=>a.type.localeCompare(b.type));
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic'};
+  grid.innerHTML=sorted.map(c=>`
+    <div class="ccard">
+      <span class="rarity-badge ${rColors[c.rarity]}">${c.rarity.toUpperCase()}</span>
+      <div class="ccard-icon">${c.icon}</div>
+      <div class="ccard-name">${c.name}</div>
+      <div class="ccard-type">${c.type}</div>
+      <div class="ccard-val">💰 ${c.val}</div>
+      <button class="btn-sm" style="width:100%;margin-top:8px;font-size:.72rem" onclick="sellCard('${c.id}')">Sell</button>
+    </div>
+  `).join('');
+}
+
+function sortInv(by){renderInv(by);}
+
+function sellCard(id){
+  const idx=G.inv.findIndex(c=>String(c.id)===String(id));
+  if(idx===-1)return;
+  const card=G.inv[idx];
+  G.coins+=card.val;G.totalEarned+=card.val;
+  G.inv.splice(idx,1);
+  save();updateCoins();renderInv();renderStats();
+  notify(`💰 Sold ${card.name} for ${card.val} coins`);
+  checkAchievements();
+}
+
+function sellAll(rarity){
+  const toSell=rarity==='all'?[...G.inv]:G.inv.filter(c=>c.rarity===rarity);
+  if(!toSell.length){notify(`No ${rarity} cards to sell`);return;}
+  const earned=toSell.reduce((a,c)=>a+c.val,0);
+  G.coins+=earned;G.totalEarned+=earned;
+  if(rarity==='all') G.inv=[];
+  else G.inv=G.inv.filter(c=>c.rarity!==rarity);
+  save();updateCoins();renderInv();renderStats();
+  notify(`💰 Sold ${toSell.length} cards for ${earned} coins!`);
+  checkAchievements();
+}
+
+// ── AUCTIONS ──────────────────────────────────────────────────────────────────
+function genAuctions(){
+  const aucs=[];
+  // Pick random rare+ cards
+  const allCards=PACKS.flatMap(p=>p.cards).filter(c=>RARITY_ORDER.indexOf(c.rarity)>=1);
+  for(let i=0;i<4;i++){
+    const base=allCards[Math.floor(Math.random()*allCards.length)];
+    aucs.push({
+      id:Date.now()+i,card:{...base,id:Date.now()+Math.random()},
+      currentBid:Math.floor(base.val*.6),
+      minBid:Math.floor(base.val*.6),
+      topBidder:'No bids yet',
+      timeLeft:60+Math.floor(Math.random()*120),
+      aiTimer:15+Math.floor(Math.random()*20)
+    });
+  }
+  return aucs;
+}
+
+function renderAuctions(){
+  const list=document.getElementById('auctionList');
+  if(!G.auctions.length){list.innerHTML='<p class="empty">No auctions right now — check back soon!</p>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic'};
+  list.innerHTML=G.auctions.map(a=>`
+    <div class="auction-item" id="auc-${a.id}">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:2rem">${a.card.icon}</div>
+        <div style="flex:1">
+          <div style="font-weight:700">${a.card.name} <span class="tag ${rColors[a.card.rarity]}">${a.card.rarity}</span></div>
+          <div style="font-size:.78rem;color:var(--muted)">${a.card.type} · Market value: 💰${a.card.val}</div>
+          <div style="margin-top:4px;font-size:.82rem">Current bid: <strong style="color:var(--gold)">💰${a.currentBid}</strong> by ${a.topBidder}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="auction-timer${a.timeLeft>30?' safe':''}" id="timer-${a.id}">⏱ ${fmt(a.timeLeft)}</div>
+        </div>
+      </div>
+      <div class="bid-row">
+        <input class="bid-input" type="number" id="bid-${a.id}" placeholder="Min: ${a.currentBid+1}" min="${a.currentBid+1}"/>
+        <button class="btn btn-green" onclick="placeBid('${a.id}')">Bid</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function fmt(s){const m=Math.floor(s/60),sec=s%60;return m+':'+String(sec).padStart(2,'0');}
+
+function placeBid(id){
+  const auc=G.auctions.find(a=>String(a.id)===String(id));
+  if(!auc)return;
+  const inp=document.getElementById('bid-'+id);
+  const bid=parseInt(inp.value);
+  if(isNaN(bid)||bid<=auc.currentBid){notify('❌ Bid must be higher than current bid!');return;}
+  if(bid>G.coins){notify('❌ Not enough coins!');return;}
+  auc.currentBid=bid;auc.topBidder='You';auc.aiTimer=8+Math.floor(Math.random()*12);
+  save();renderAuctions();
+  notify(`🏆 You're the top bidder at ${bid} coins!`);
+}
+
+function tickAuctions(){
+  let changed=false;
+  G.auctions.forEach(a=>{
+    a.timeLeft=Math.max(0,a.timeLeft-1);
+    a.aiTimer=Math.max(0,a.aiTimer-1);
+    // AI bids
+    if(a.aiTimer===0&&a.timeLeft>5&&a.topBidder!=='You'||
+       (a.aiTimer===0&&a.topBidder==='You'&&Math.random()<.4)){
+      const ai=AI_PLAYERS[Math.floor(Math.random()*AI_PLAYERS.length)];
+      if(ai.coins>a.currentBid+10){
+        a.currentBid+=5+Math.floor(Math.random()*20);
+        a.topBidder=ai.name;
+        a.aiTimer=10+Math.floor(Math.random()*15);
+      }
+    }
+    // End auction
+    if(a.timeLeft===0){
+      if(a.topBidder==='You'){
+        G.coins-=a.currentBid;G.totalSpent+=a.currentBid;
+        G.inv.push({...a.card});G.auctionWins++;
+        notify(`🏆 You won the auction! ${a.card.name} added to inventory!`);
+        checkAchievements();
+      } else {
+        notify(`⏱ Auction ended — ${a.topBidder} won ${a.card.name}`);
+      }
+      changed=true;
+    }
+  });
+  G.auctions=G.auctions.filter(a=>a.timeLeft>0);
+  if(G.auctions.length<2){G.auctions.push(...genAuctions().slice(0,2));}
+  if(changed){save();updateCoins();renderStats();renderInv();}
+  // Update timers in DOM
+  G.auctions.forEach(a=>{
+    const t=document.getElementById('timer-'+a.id);
+    if(t){t.textContent=`⏱ ${fmt(a.timeLeft)}`;t.className='auction-timer'+(a.timeLeft>30?' safe':'');}
+  });
+}
+
+// ── TRADE ─────────────────────────────────────────────────────────────────────
+function renderTrade(){
+  const stageArea=document.getElementById('stageArea');
+  const stageSelect=document.getElementById('stageSelect');
+  if(!G.stagedCards.length) stageArea.innerHTML='<p class="empty">No cards staged</p>';
+  else stageArea.innerHTML=G.stagedCards.map((c,i)=>`
+    <div class="trade-item" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;background:#2a2a3a;border-radius:6px;margin-bottom:4px;font-size:.82rem">
+      <span>${c.icon} ${c.name} (${c.rarity})</span>
+      <button onclick="unstage(${i})" style="background:none;border:none;color:var(--accent2);cursor:pointer">✕</button>
+    </div>
+  `).join('');
+  if(G.stagedCards.length>=5||!G.inv.length){
+    stageSelect.innerHTML='';return;
+  }
+  const available=G.inv.filter(c=>!G.stagedCards.find(s=>String(s.id)===String(c.id)));
+  stageSelect.innerHTML=available.slice(0,20).map(c=>`
+    <div onclick="stageCard('${c.id}')" style="cursor:pointer;padding:6px 8px;background:#1a1a2e;border-radius:6px;margin-bottom:4px;font-size:.78rem;display:flex;justify-content:space-between">
+      <span>${c.icon} ${c.name}</span><span style="color:var(--gold)">${c.rarity}</span>
+    </div>
+  `).join('');
+}
+
+function stageCard(id){
+  if(G.stagedCards.length>=5){notify('Max 5 cards per trade');return;}
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(c&&!G.stagedCards.find(s=>String(s.id)===String(c.id))){G.stagedCards.push(c);renderTrade();}
+}
+
+function unstage(i){G.stagedCards.splice(i,1);renderTrade();}
+
+function genCode(){
+  if(!G.stagedCards.length){notify('Stage cards first!');return;}
+  // Remove from inv
+  G.stagedCards.forEach(c=>{const idx=G.inv.findIndex(i=>String(i.id)===String(c.id));if(idx!==-1)G.inv.splice(idx,1);});
+  const code='CARD-'+btoa(JSON.stringify(G.stagedCards)).slice(0,20).replace(/[^A-Z0-9]/gi,'').toUpperCase();
+  // Store in localStorage
+  localStorage.setItem('tradecode_'+code, JSON.stringify(G.stagedCards));
+  document.getElementById('myCode').innerHTML=`Your code: <strong style="color:var(--accent2)">${code}</strong><br><span style="font-size:.72rem">Share this with someone to trade!</span>`;
+  G.stagedCards=[];G.trades++;
+  save();renderTrade();renderStats();
+  checkAchievements();
+  notify('📦 Trade code generated!');
+}
+
+function claimCode(){
+  const code=document.getElementById('tradeCodeInput').value.trim().toUpperCase();
+  const stored=localStorage.getItem('tradecode_'+code);
+  const result=document.getElementById('claimResult');
+  if(!stored){result.innerHTML='<span style="color:var(--red)">❌ Invalid code</span>';return;}
+  const cards=JSON.parse(stored);
+  cards.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
+  localStorage.removeItem('tradecode_'+code);
+  G.trades++;save();renderInv();renderStats();
+  result.innerHTML=`<span style="color:var(--green)">✅ Claimed ${cards.length} cards!</span>`;
+  document.getElementById('tradeCodeInput').value='';
+  notify(`🎁 Received ${cards.length} cards from trade!`);
+  checkAchievements();
+}
+
+// ── FUSION ────────────────────────────────────────────────────────────────────
+let fuseSlots=[null,null,null];
+let fuseSelectOpen=-1;
+
+function renderFuseSlots(){
+  fuseSlots.forEach((c,i)=>{
+    const slot=document.getElementById('fslot-'+i);
+    if(c){slot.innerHTML=`<div>${c.icon}</div><div style="font-size:.7rem">${c.name}</div><div style="font-size:.65rem;color:var(--muted)">${c.rarity}</div>`;slot.classList.add('filled');}
+    else{slot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">+ Card ${i+1}</div>`;slot.classList.remove('filled');}
+  });
+  const resSlot=document.getElementById('fslot-result');
+  const allFilled=fuseSlots.every(s=>s!==null);
+  const sameRarity=allFilled&&fuseSlots.every(s=>s.rarity===fuseSlots[0].rarity);
+  document.getElementById('fuseBtn').disabled=!sameRarity;
+  if(allFilled&&sameRarity&&RARITY_UP[fuseSlots[0].rarity]){
+    const upRar=RARITY_UP[fuseSlots[0].rarity];
+    resSlot.innerHTML=`<div style="font-size:.8rem;color:var(--accent2)">${upRar.toUpperCase()}</div><div style="font-size:.7rem;color:var(--muted)">card</div>`;
+    document.getElementById('fuseMsg').innerHTML='';
+  } else if(allFilled&&sameRarity&&!RARITY_UP[fuseSlots[0].rarity]){
+    resSlot.innerHTML='<div style="font-size:.7rem;color:var(--red)">Max</div>';
+    document.getElementById('fuseBtn').disabled=true;
+    document.getElementById('fuseMsg').innerHTML='<span style="color:var(--red)">Mythics cannot be fused further</span>';
+  } else if(allFilled){
+    document.getElementById('fuseMsg').innerHTML='<span style="color:var(--red)">All 3 cards must be the same rarity!</span>';
+    resSlot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">?</div>`;
+  } else {
+    resSlot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">Result</div>`;
+  }
+}
+
+function openFuseSelect(slot){
+  fuseSelectOpen=slot;
+  const avail=G.inv.filter(c=>!fuseSlots.includes(c));
+  if(!avail.length){notify('No cards in inventory!');return;}
+  const modal=document.createElement('div');
+  modal.className='modal-overlay';modal.id='fuseSelectModal';
+  modal.innerHTML=`<div class="modal"><h2>Select Card for Slot ${slot+1}</h2>
+    <div style="max-height:300px;overflow-y:auto">${avail.map(c=>`
+      <div onclick="selectFuseCard('${c.id}')" style="cursor:pointer;padding:8px;background:#2a2a3a;border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;font-size:.83rem">
+        <span style="font-size:1.2rem">${c.icon}</span><span style="flex:1">${c.name}</span><span style="color:var(--muted)">${c.rarity}</span>
+      </div>`).join('')}
+    </div>
+    <button class="btn-sm" onclick="document.getElementById('fuseSelectModal').remove()" style="margin-top:10px">Cancel</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function selectFuseCard(id){
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(c){fuseSlots[fuseSelectOpen]=c;}
+  document.getElementById('fuseSelectModal')?.remove();
+  renderFuseSlots();
+}
+
+function executeFuse(){
+  const rarity=fuseSlots[0].rarity;
+  const newRarity=RARITY_UP[rarity];
+  if(!newRarity){notify('Cannot fuse Mythics!');return;}
+  // Remove 3 cards from inv
+  fuseSlots.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  // Generate new card of higher rarity
+  const pack=PACKS[Math.floor(Math.random()*PACKS.length)];
+  const pool=pack.cards.filter(c=>c.rarity===newRarity);
+  const base=pool.length?pool[Math.floor(Math.random()*pool.length)]:pack.cards[0];
+  const newCard={...base,id:Date.now()+Math.random(),rarity:newRarity};
+  G.inv.push(newCard);G.fusions++;
+  fuseSlots=[null,null,null];
+  save();checkAchievements();renderInv();renderStats();renderFuseSlots();
+  document.getElementById('fuseMsg').innerHTML=`<span style="color:var(--green)">✅ Fusion success! Got: ${newCard.icon} ${newCard.name} (${newRarity})</span>`;
+  notify(`⚗️ Fusion! Got a ${newRarity} card!`);
+}
+
+// ── DAILY CHALLENGES ──────────────────────────────────────────────────────────
+function checkDailies(){
+  const today=new Date().toDateString();
+  if(G.lastDaily!==today){
+    G.lastDaily=today;
+    G.dailies=[
+      {id:'open1',desc:'Open 1 pack',reward:75,target:1,progress:0,done:false,type:'packs'},
+      {id:'sell5',desc:'Sell 5 cards',reward:100,target:5,progress:0,done:false,type:'sells'},
+      {id:'earn200',desc:'Earn 200 coins',reward:150,target:200,progress:0,done:false,type:'earn'},
+    ];
+    save();
+  }
+}
+
+function checkDailyProgress(){
+  let changed=false;
+  G.dailies.forEach(d=>{
+    if(d.done)return;
+    if(d.type==='packs'){d.progress=G.packsOpened;if(d.progress>=d.target){d.done=true;G.coins+=d.reward;G.dailiesCompleted++;notify(`🎯 Daily complete! +${d.reward} coins`);changed=true;}}
+  });
+  if(changed){save();updateCoins();checkAchievements();}
+  renderDailyChallenges();
+}
+
+function renderDailyChallenges(){
+  const el=document.getElementById('dailyChallenges');
+  if(!G.dailies||!G.dailies.length){el.innerHTML='';return;}
+  el.innerHTML=G.dailies.map(d=>`
+    <div class="daily-challenge${d.done?' done':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="daily-title">${d.done?'✅':''} ${d.desc}</div>
+        <div class="daily-reward">+${d.reward} 💰</div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${Math.min(100,Math.round((d.progress/d.target)*100))}%"></div></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:3px">${d.progress}/${d.target}</div>
+    </div>
+  `).join('');
+}
+
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────────
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(G.achDone.includes(a.id))return;
+    if(a.check(G)){G.achDone.push(a.id);G.coins+=a.reward;G.totalEarned+=a.reward;notify(`🏆 Achievement: ${a.name}! +${a.reward} coins`);updateCoins();}
+  });
+  save();renderAchievements();
+}
+
+function renderAchievements(){
+  const el=document.getElementById('achieveList');
+  el.innerHTML=ACHIEVEMENTS.map(a=>{
+    const done=G.achDone.includes(a.id);
+    return `<div class="achieve${done?' done':''}">
+      <div class="achieve-icon">${a.icon}</div>
+      <div class="achieve-info">
+        <div class="achieve-name">${a.name}</div>
+        <div class="achieve-desc">${a.desc}</div>
+        <div class="achieve-reward">${done?'✅ Claimed':'🎁 Reward: +'+a.reward+' coins'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+function renderLB(by){
+  const el=document.getElementById('lbList');
+  const playerEntry={name:'You',coins:G.coins,cards:G.inv.length,mythics:G.inv.filter(c=>c.rarity==='mythic').length};
+  const allPlayers=[playerEntry,...AI_PLAYERS.map(p=>({...p,cards:Math.floor(p.coins/8),mythics:Math.floor(p.coins/1200)}))];
+  allPlayers.sort((a,b)=>b[by]-a[by]);
+  el.innerHTML=allPlayers.map((p,i)=>`
+    <div class="lb-row" style="${p.name==='You'?'border:1px solid var(--accent)':''}">
+      <div class="lb-rank${i<3?' top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="lb-name">${p.name==='You'?'<strong style="color:var(--accent2)">You</strong>':p.name}</div>
+      <div class="lb-val">${by==='coins'?'💰 '+p.coins.toLocaleString():by==='cards'?'🃏 '+p.cards:'🔥 '+p.mythics}</div>
+    </div>
+  `).join('');
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+let notifTimer=null;
+function notify(msg){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.classList.remove('hidden');
+  clearTimeout(notifTimer);notifTimer=setTimeout(()=>el.classList.add('hidden'),3000);
+}
+
+init();
+</script>
+</body>
+</html>
