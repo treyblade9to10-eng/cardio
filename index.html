@@ -454,6 +454,7 @@ const db = firebase.database();
 
 function saveLB(){
   if(!G.username)return;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
   const entry = {
     name:G.username,coins:G.coins,cards:G.inv.length,
     mythics:G.inv.filter(c=>c.rarity==='mythic').length,
@@ -461,7 +462,10 @@ function saveLB(){
     cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,
     updated:Date.now()
   };
-  db.ref('leaderboard/'+G.username.replace(/[.#$\[\]]/g,'_')).set(entry).catch(()=>{});
+  // Update leaderboard
+  db.ref('leaderboard/'+safeKey).set(entry).catch(()=>{});
+  // Backup full save to cloud
+  db.ref('saves/'+safeKey).set({...G,username:G.username}).catch(()=>{});
 }
 
 function getLB(){return [];} // not used anymore - Firebase handles it
@@ -482,15 +486,28 @@ function init(){
 function setUsername(){
   const name=document.getElementById('usernameInput').value.trim();
   if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
-  // Check if returning user
-  const lb=getLB();
-  const existing=lb.find(p=>p.name===name);
-  if(existing){notify(`👋 Welcome back, ${name}!`);}
-  else{notify(`🎉 Welcome, ${name}!`);}
   G.username=name;
-  save();
-  document.getElementById('usernameModal').classList.add('hidden');
-  startGame();
+  // Try to load existing save from Firebase for this username
+  const safeKey=name.replace(/[.#$\[\]]/g,'_');
+  db.ref('saves/'+safeKey).once('value').then(snap=>{
+    const cloudSave=snap.val();
+    if(cloudSave&&cloudSave.username===name){
+      // Restore cloud save
+      G=cloudSave;
+      G.username=name;
+      save();
+      notify('👋 Welcome back, '+name+'! Progress restored ✅');
+    } else {
+      save();
+      notify('🎉 Welcome, '+name+'! New account created');
+    }
+    document.getElementById('usernameModal').classList.add('hidden');
+    startGame();
+  }).catch(()=>{
+    save();
+    document.getElementById('usernameModal').classList.add('hidden');
+    startGame();
+  });
 }
 
 function startGame(){
@@ -971,7 +988,7 @@ function renderLB(by){
   const el=document.getElementById('lbList');
   saveLB();
   el.innerHTML='<p class="empty" style="text-align:center">Loading rankings... 🔄</p>';
-  db.ref('leaderboard').orderByChild(by).limitToLast(50).once('value').then(snap=>{
+  db.ref('leaderboard').once('value').then(snap=>{
     const data=snap.val();
     if(!data){el.innerHTML='<p class="empty">No players yet — be the first! 👑</p>';return;}
     const players=Object.values(data).sort((a,b)=>(b[by]||0)-(a[by]||0));
