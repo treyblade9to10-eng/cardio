@@ -116,6 +116,8 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 .fusion-slot:hover{border-color:var(--accent)}
 .fusion-slot.filled{border-color:var(--accent);border-style:solid}
 </style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
 
@@ -445,16 +447,24 @@ let G = {
   packsOpenedByType:{}, stagedCards:[], lastDaily:null,
   auctions:[], dailies:[], achDone:[], pendingPulled:[]
 };
-const LB_KEY = 'cardio_leaderboard';
+// ── FIREBASE SETUP ───────────────────────────────────────────────────────────
+const firebaseConfig = {databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com"};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 function saveLB(){
   if(!G.username)return;
-  const lb = JSON.parse(localStorage.getItem(LB_KEY)||'[]');
-  const idx = lb.findIndex(p=>p.name===G.username);
-  const entry = {name:G.username,coins:G.coins,cards:G.inv.length,mythics:G.inv.filter(c=>c.rarity==='mythic').length,gods:G.inv.filter(c=>c.rarity==='god').length,cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,updated:Date.now()};
-  if(idx!==-1)lb[idx]=entry; else lb.push(entry);
-  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+  const entry = {
+    name:G.username,coins:G.coins,cards:G.inv.length,
+    mythics:G.inv.filter(c=>c.rarity==='mythic').length,
+    gods:G.inv.filter(c=>c.rarity==='god').length,
+    cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,
+    updated:Date.now()
+  };
+  db.ref('leaderboard/'+G.username.replace(/[.#$\[\]]/g,'_')).set(entry).catch(()=>{});
 }
-function getLB(){return JSON.parse(localStorage.getItem(LB_KEY)||'[]');}
+
+function getLB(){return [];} // not used anymore - Firebase handles it
 const KEY='cardio_v2';
 const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
@@ -959,23 +969,25 @@ function renderAchievements(){
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
 function renderLB(by){
   const el=document.getElementById('lbList');
-  // Save current state to LB first
   saveLB();
-  const lb=getLB();
-  if(!lb.length){el.innerHTML='<p class="empty">No players yet — be the first! 👑</p>';return;}
-  const sorted=[...lb].sort((a,b)=>(b[by]||0)-(a[by]||0));
-  el.innerHTML=sorted.map((p,i)=>{
-    const isYou=p.name===G.username;
-    let val='';
-    if(by==='coins') val='💰 '+(p.coins||0).toLocaleString();
-    else if(by==='cards') val='🃏 '+(p.cards||0);
-    else val='🔥 '+(p.mythics||0)+(p.gods?' + '+p.gods+' 👁️':'')+(p.cosmic?' + ✦':'');
-    return `<div class="lb-row" style="${isYou?'border:1px solid var(--accent2);background:#1a0030':''}">
-      <div class="lb-rank${i<3?' top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-      <div class="lb-name">${isYou?('<strong style="color:var(--accent2)">'+p.name+' (You)</strong>'):p.name}</div>
-      <div class="lb-val">${val}</div>
-    </div>`;
-  }).join('');
+  el.innerHTML='<p class="empty" style="text-align:center">Loading rankings... 🔄</p>';
+  db.ref('leaderboard').orderByChild(by).limitToLast(50).once('value').then(snap=>{
+    const data=snap.val();
+    if(!data){el.innerHTML='<p class="empty">No players yet — be the first! 👑</p>';return;}
+    const players=Object.values(data).sort((a,b)=>(b[by]||0)-(a[by]||0));
+    el.innerHTML=players.map((p,i)=>{
+      const isYou=p.name===G.username;
+      let val='';
+      if(by==='coins') val='💰 '+(p.coins||0).toLocaleString();
+      else if(by==='cards') val='🃏 '+(p.cards||0);
+      else val='🔥 '+(p.mythics||0)+(p.gods?' + '+p.gods+' 👁️':'')+(p.cosmic?' + ✦':'');
+      return '<div class="lb-row" style="'+(isYou?'border:1px solid var(--accent2);background:#1a0030':'')+'">'
+        +'<div class="lb-rank'+(i<3?' top':'')+'">'+( i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1)+'</div>'
+        +'<div class="lb-name">'+(isYou?('<strong style="color:var(--accent2)">'+p.name+' (You)</strong>'):p.name)+'</div>'
+        +'<div class="lb-val">'+val+'</div>'
+        +'</div>';
+    }).join('');
+  }).catch(()=>{el.innerHTML='<p class="empty">Could not load rankings</p>';});
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
