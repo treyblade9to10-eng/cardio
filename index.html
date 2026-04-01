@@ -122,6 +122,18 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 <!-- NOTIFICATION -->
 <div class="notification hidden" id="notif"></div>
 
+<!-- USERNAME MODAL -->
+<div class="modal-overlay" id="usernameModal">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🃏</div>
+    <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:20px">Enter a username to save your progress and appear on the global leaderboard</p>
+    <input type="text" id="usernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Start Playing</button>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">Progress saves to this browser. Use the same username on other devices to appear on leaderboards.</p>
+  </div>
+</div>
+
 <!-- PACK OPENING MODAL -->
 <div class="modal-overlay hidden" id="packModal">
   <div class="modal">
@@ -424,30 +436,61 @@ const ACHIEVEMENTS = [
   {id:'all_packs',name:'Pack Explorer',desc:'Open every pack type',icon:'🗺️',reward:500,check:s=>Object.keys(s.packsOpenedByType||{}).length>=6},
 ];
 
-const AI_PLAYERS = [
-  {name:'CardKing99',coins:5000},{name:'PackMaster',coins:4200},{name:'MythicHunter',coins:3800},
-  {name:'RareFinder',coins:3100},{name:'LuckyDraw',coins:2700},{name:'TheCollector',coins:2200},
-];
+// Leaderboard uses real players only
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let G = {
-  coins:300, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
-  fusions:0, trades:0, auctionWins:0, dailiesCompleted:0,
+  username:'', coins:300, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
+  fusions:0, trades:0, auctionWins:0, dailiesCompleted:0, sellCount:0,
   packsOpenedByType:{}, stagedCards:[], lastDaily:null,
   auctions:[], dailies:[], achDone:[], pendingPulled:[]
 };
+const LB_KEY = 'cardio_leaderboard';
+function saveLB(){
+  if(!G.username)return;
+  const lb = JSON.parse(localStorage.getItem(LB_KEY)||'[]');
+  const idx = lb.findIndex(p=>p.name===G.username);
+  const entry = {name:G.username,coins:G.coins,cards:G.inv.length,mythics:G.inv.filter(c=>c.rarity==='mythic').length,gods:G.inv.filter(c=>c.rarity==='god').length,cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,updated:Date.now()};
+  if(idx!==-1)lb[idx]=entry; else lb.push(entry);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+}
+function getLB(){return JSON.parse(localStorage.getItem(LB_KEY)||'[]');}
 const KEY='cardio_v2';
-const save=()=>localStorage.setItem(KEY,JSON.stringify(G));
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function init(){
   load();
+  if(!G.username){
+    document.getElementById('usernameModal').classList.remove('hidden');
+    return;
+  }
+  startGame();
+}
+
+function setUsername(){
+  const name=document.getElementById('usernameInput').value.trim();
+  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
+  // Check if returning user
+  const lb=getLB();
+  const existing=lb.find(p=>p.name===name);
+  if(existing){notify(`👋 Welcome back, ${name}!`);}
+  else{notify(`🎉 Welcome, ${name}!`);}
+  G.username=name;
+  save();
+  document.getElementById('usernameModal').classList.add('hidden');
+  startGame();
+}
+
+function startGame(){
   if(!G.auctions||!G.auctions.length) G.auctions=genAuctions();
   checkDailies();
   renderAll();
+  // Show username in nav
+  const badge=document.querySelector('.coins-badge');
+  if(badge&&G.username) badge.title=G.username;
   setInterval(tickAuctions,1000);
-  // Daily login bonus
   const today=new Date().toDateString();
   if(G.lastLogin!==today){G.lastLogin=today;G.coins+=50;save();notify('🎁 Daily login bonus! +50 coins');}
 }
@@ -584,7 +627,8 @@ function sellCard(id){
   const card=G.inv[idx];
   G.coins+=card.val;G.totalEarned+=card.val;
   G.inv.splice(idx,1);
-  save();updateCoins();renderInv();renderStats();
+  G.sellCount=(G.sellCount||0)+1;
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();
   notify(`💰 Sold ${card.name} for ${card.val} coins`);
   checkAchievements();
 }
@@ -594,9 +638,10 @@ function sellAll(rarity){
   if(!toSell.length){notify(`No ${rarity} cards to sell`);return;}
   const earned=toSell.reduce((a,c)=>a+c.val,0);
   G.coins+=earned;G.totalEarned+=earned;
+  G.sellCount=(G.sellCount||0)+toSell.length;
   if(rarity==='all') G.inv=[];
   else G.inv=G.inv.filter(c=>c.rarity!==rarity);
-  save();updateCoins();renderInv();renderStats();
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();
   notify(`💰 Sold ${toSell.length} cards for ${earned} coins!`);
   checkAchievements();
 }
@@ -833,20 +878,40 @@ function checkDailies(){
   const today=new Date().toDateString();
   if(G.lastDaily!==today){
     G.lastDaily=today;
-    G.dailies=[
+    const allDailies=[
       {id:'open1',desc:'Open 1 pack',reward:75,target:1,progress:0,done:false,type:'packs'},
+      {id:'open3',desc:'Open 3 packs',reward:150,target:3,progress:0,done:false,type:'packs'},
       {id:'sell5',desc:'Sell 5 cards',reward:100,target:5,progress:0,done:false,type:'sells'},
+      {id:'sell10',desc:'Sell 10 cards',reward:175,target:10,progress:0,done:false,type:'sells'},
       {id:'earn200',desc:'Earn 200 coins',reward:150,target:200,progress:0,done:false,type:'earn'},
+      {id:'earn500',desc:'Earn 500 coins',reward:250,target:500,progress:0,done:false,type:'earn'},
+      {id:'fuse1',desc:'Fuse 1 set of cards',reward:200,target:1,progress:0,done:false,type:'fuse'},
+      {id:'auction1',desc:'Win an auction',reward:300,target:1,progress:0,done:false,type:'auction'},
     ];
+    // Pick 3 random challenges for today
+    const shuffled=allDailies.sort(()=>Math.random()-.5);
+    G.dailies=shuffled.slice(0,3);
     save();
   }
 }
 
 function checkDailyProgress(){
   let changed=false;
+  if(!G.dailies)return;
   G.dailies.forEach(d=>{
     if(d.done)return;
-    if(d.type==='packs'){d.progress=G.packsOpened;if(d.progress>=d.target){d.done=true;G.coins+=d.reward;G.dailiesCompleted++;notify(`🎯 Daily complete! +${d.reward} coins`);changed=true;}}
+    let prog=0;
+    if(d.type==='packs') prog=G.packsOpened;
+    else if(d.type==='sells') prog=G.sellCount||0;
+    else if(d.type==='earn') prog=G.totalEarned;
+    else if(d.type==='fuse') prog=G.fusions;
+    else if(d.type==='auction') prog=G.auctionWins;
+    d.progress=prog;
+    if(!d.done&&d.progress>=d.target){
+      d.done=true;G.coins+=d.reward;G.dailiesCompleted++;
+      notify(`🎯 Daily complete: "${d.desc}"! +${d.reward} coins`);
+      changed=true;
+    }
   });
   if(changed){save();updateCoins();checkAchievements();}
   renderDailyChallenges();
@@ -894,16 +959,23 @@ function renderAchievements(){
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
 function renderLB(by){
   const el=document.getElementById('lbList');
-  const playerEntry={name:'You',coins:G.coins,cards:G.inv.length,mythics:G.inv.filter(c=>c.rarity==='mythic').length};
-  const allPlayers=[playerEntry,...AI_PLAYERS.map(p=>({...p,cards:Math.floor(p.coins/8),mythics:Math.floor(p.coins/1200)}))];
-  allPlayers.sort((a,b)=>b[by]-a[by]);
-  el.innerHTML=allPlayers.map((p,i)=>`
-    <div class="lb-row" style="${p.name==='You'?'border:1px solid var(--accent)':''}">
+  // Save current state to LB first
+  saveLB();
+  const lb=getLB();
+  if(!lb.length){el.innerHTML='<p class="empty">No players yet — be the first! 👑</p>';return;}
+  const sorted=[...lb].sort((a,b)=>(b[by]||0)-(a[by]||0));
+  el.innerHTML=sorted.map((p,i)=>{
+    const isYou=p.name===G.username;
+    let val='';
+    if(by==='coins') val='💰 '+(p.coins||0).toLocaleString();
+    else if(by==='cards') val='🃏 '+(p.cards||0);
+    else val='🔥 '+(p.mythics||0)+(p.gods?' + '+p.gods+' 👁️':'')+(p.cosmic?' + ✦':'');
+    return `<div class="lb-row" style="${isYou?'border:1px solid var(--accent2);background:#1a0030':''}">
       <div class="lb-rank${i<3?' top':''}">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
-      <div class="lb-name">${p.name==='You'?'<strong style="color:var(--accent2)">You</strong>':p.name}</div>
-      <div class="lb-val">${by==='coins'?'💰 '+p.coins.toLocaleString():by==='cards'?'🃏 '+p.cards:'🔥 '+p.mythics}</div>
-    </div>
-  `).join('');
+      <div class="lb-name">${isYou?('<strong style="color:var(--accent2)">'+p.name+' (You)</strong>'):p.name}</div>
+      <div class="lb-val">${val}</div>
+    </div>`;
+  }).join('');
 }
 
 // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
