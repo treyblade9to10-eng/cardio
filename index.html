@@ -129,10 +129,11 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   <div class="modal" style="max-width:380px">
     <div style="font-size:2.5rem;margin-bottom:8px">🃏</div>
     <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
-    <p style="color:var(--muted);font-size:.83rem;margin-bottom:20px">Enter a username to save your progress and appear on the global leaderboard</p>
-    <input type="text" id="usernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Start Playing</button>
-    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">Progress saves to this browser. Use the same username on other devices to appear on leaderboards.</p>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
+    <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
+    <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
   </div>
 </div>
 
@@ -462,10 +463,10 @@ function saveLB(){
     cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,
     updated:Date.now()
   };
-  // Update leaderboard
+  // Update leaderboard (no password in public data)
   db.ref('leaderboard/'+safeKey).set(entry).catch(()=>{});
-  // Backup full save to cloud
-  db.ref('saves/'+safeKey).set({...G,username:G.username}).catch(()=>{});
+  // Backup full save to cloud (includes password hash)
+  db.ref('saves/'+safeKey).set({...G}).catch(()=>{});
 }
 
 function getLB(){return [];} // not used anymore - Firebase handles it
@@ -483,27 +484,49 @@ function init(){
   startGame();
 }
 
+function hashPass(s){
+  // Simple hash for password (not cryptographic but prevents casual theft)
+  let h=0;
+  for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}
+  return Math.abs(h).toString(36);
+}
+
 function setUsername(){
   const name=document.getElementById('usernameInput').value.trim();
+  const pass=document.getElementById('passwordInput').value;
   if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
-  G.username=name;
-  // Try to load existing save from Firebase for this username
+  if(!pass||pass.length<3){notify('❌ Password must be at least 3 characters');return;}
   const safeKey=name.replace(/[.#$\[\]]/g,'_');
+  const passHash=hashPass(pass);
+  
   db.ref('saves/'+safeKey).once('value').then(snap=>{
     const cloudSave=snap.val();
     if(cloudSave&&cloudSave.username===name){
-      // Restore cloud save
+      // Existing account — verify password
+      if(cloudSave.passHash&&cloudSave.passHash!==passHash){
+        notify('❌ Wrong password!');
+        return;
+      }
+      // Correct password — restore save
       G=cloudSave;
       G.username=name;
+      G.passHash=passHash;
       save();
-      notify('👋 Welcome back, '+name+'! Progress restored ✅');
+      notify('👋 Welcome back, '+name+'!');
+      document.getElementById('usernameModal').classList.add('hidden');
+      startGame();
     } else {
+      // New account
+      G.username=name;
+      G.passHash=passHash;
       save();
-      notify('🎉 Welcome, '+name+'! New account created');
+      notify('🎉 Account created, '+name+'! Welcome!');
+      document.getElementById('usernameModal').classList.add('hidden');
+      startGame();
     }
-    document.getElementById('usernameModal').classList.add('hidden');
-    startGame();
   }).catch(()=>{
+    G.username=name;
+    G.passHash=passHash;
     save();
     document.getElementById('usernameModal').classList.add('hidden');
     startGame();
