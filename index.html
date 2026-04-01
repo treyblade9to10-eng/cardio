@@ -602,7 +602,7 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 // ── INIT ──────────────────────────────────────────────────────────────────────
 function init(){
   // Always show login - Firebase is source of truth, not localStorage
-  document.getElementById('usernameModal').classList.remove('hidden');
+  const um=document.getElementById('usernameModal');um.classList.remove('hidden');um.style.display='';
   // Pre-fill username if we have it cached locally (convenience only)
   loadFromLocal();
   if(G.username) document.getElementById('usernameInput').value=G.username;
@@ -795,7 +795,7 @@ function setUsername(){
       G.passHash=passHash;
       save();
       notify('👋 Welcome back, '+name+'!');
-      document.getElementById('usernameModal').classList.add('hidden');
+      const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
       startGame();
     } else {
       // New account - fresh state with starting coins
@@ -808,7 +808,7 @@ function setUsername(){
       G=freshState;
       save();
       notify('🎉 Account created, '+name+'! You start with 300 coins 💰');
-      document.getElementById('usernameModal').classList.add('hidden');
+      const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
       startGame();
     }
   }).catch(()=>{
@@ -822,7 +822,7 @@ function setUsername(){
         packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
     }
     save();
-    document.getElementById('usernameModal').classList.add('hidden');
+    const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
     startGame();
   });
 }
@@ -1213,7 +1213,7 @@ function openTradeRoom(tradeId, partner, theirOffering){
   document.getElementById('tradeRoomWith').textContent='Trading with: '+partner;
   document.getElementById('mySideLabel').textContent='Your Cards';
   document.getElementById('theirSideLabel').textContent=partner+"'s Cards";
-  document.getElementById('tradeRoomOverlay').classList.remove('hidden');
+  const tro=document.getElementById('tradeRoomOverlay');tro.classList.remove('hidden');tro.style.display='';
   renderTradeRoom();
   // Start polling for updates
   if(tradeRoomInterval) clearInterval(tradeRoomInterval);
@@ -1340,7 +1340,7 @@ function confirmTrade(){
 function cancelTradeRoom(){
   if(tradeRoomInterval)clearInterval(tradeRoomInterval);
   currentTradeRoom=null;
-  document.getElementById('tradeRoomOverlay').classList.add('hidden');
+  const tro2=document.getElementById('tradeRoomOverlay');tro2.classList.add('hidden');tro2.style.display='none';
 }
 
 function declineTrade(tradeId, fromUser){
