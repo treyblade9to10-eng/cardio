@@ -1359,7 +1359,29 @@ function checkIncomingTrades(){
   const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
   const el=document.getElementById('incomingTrades');
   if(!el)return;
-  el.innerHTML='<p class="empty" style="text-align:center">Checking... 🔄</p>';
+  el.innerHTML='';
+  const rColorsG={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  // Check ready notifications first
+  db.ref('tradenotifs/'+safeKey).once('value').then(notifSnap=>{
+    const notifs=notifSnap.val();
+    if(notifs){
+      Object.entries(notifs).forEach(([tid,n])=>{
+        if(!n.ready)return;
+        const initials=(n.from||'?').slice(0,2).toUpperCase();
+        el.innerHTML+=`<div class="trade-request-card" style="border-color:#10b981;background:#071210">
+          <div class="tr-header">
+            <div class="tr-avatar" style="background:#10b981">${initials}</div>
+            <div><div class="tr-from" style="color:#10b981">⚡ ${n.from} is ready!</div>
+            <div style="font-size:.72rem;color:#888">They put up their cards and readied up</div></div>
+          </div>
+          <div class="tr-offering-label">Their cards on the table</div>
+          <div class="tr-cards-row">${(n.cards||[]).map(c=>`<div class="tr-mini-card"><span>${c.icon}</span><span>${c.name}</span><span class="rarity-badge ${rColorsG[c.rarity]}" style="position:static;font-size:.58rem">${c.rarity}</span></div>`).join('')}</div>
+          <button class="btn btn-green" style="width:100%;padding:11px;font-size:.9rem;margin-top:10px" onclick="joinReadyTrade('${tid}','${n.from}')">⚡ Ready Up &amp; Join!</button>
+        </div>`;
+        db.ref('tradenotifs/'+safeKey+'/'+tid).remove();
+      });
+    }
+  }).catch(()=>{});
   db.ref('trades/'+safeKey).once('value').then(snap=>{
     const data=snap.val();
     if(!data||!Object.keys(data).length){el.innerHTML='<p class="empty">No incoming trades</p>';return;}
@@ -1497,8 +1519,33 @@ function pushRoomState(){
 function toggleReady(){
   if(!currentTradeRoom)return;
   currentTradeRoom.myReady=!currentTradeRoom.myReady;
-  db.ref('traderooms/'+currentTradeRoom.tradeId).update({p1Ready:currentTradeRoom.myReady});
+  db.ref('traderooms/'+currentTradeRoom.tradeId).update({
+    p1Ready:currentTradeRoom.myReady,
+    p1Cards:currentTradeRoom.myCards,
+    p1Name:G.username
+  });
+  if(currentTradeRoom.myReady&&currentTradeRoom.myCards.length>0){
+    const partnerKey=currentTradeRoom.partner.replace(/[.#$\[\]]/g,'_');
+    db.ref('tradenotifs/'+partnerKey+'/'+currentTradeRoom.tradeId).set({
+      tradeId:currentTradeRoom.tradeId,from:G.username,
+      cards:currentTradeRoom.myCards,ready:true,timestamp:Date.now()
+    });
+  }
   renderTradeRoom();
+}
+
+function joinReadyTrade(tradeId,partner){
+  db.ref('traderooms/'+tradeId).once('value').then(snap=>{
+    const room=snap.val();
+    openTradeRoom(tradeId,partner,room?room.p1Cards||[]:[]);
+    setTimeout(()=>{
+      if(currentTradeRoom){
+        currentTradeRoom.myReady=true;
+        db.ref('traderooms/'+tradeId).update({p2Ready:true,p2Name:G.username});
+        renderTradeRoom();
+      }
+    },600);
+  });
 }
 
 function pollTradeRoom(){
