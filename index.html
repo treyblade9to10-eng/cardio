@@ -634,6 +634,10 @@ const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+function loadFromLocal(){
+  try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d.username)Object.assign(G,d);}}catch(e){}
+}
+
 function init(){
   // Always show login - Firebase is source of truth, not localStorage
   const um=document.getElementById('usernameModal');um.classList.remove('hidden');um.style.display='';
