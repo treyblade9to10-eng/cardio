@@ -204,6 +204,17 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   </div>
 </div>
 
+<!-- GOOGLE USERNAME PICKER -->
+<div class="modal-overlay hidden" id="googlePickerModal" style="display:none;z-index:600">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+    <h2 style="margin-bottom:6px">One more thing!</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Choose your in-game username. This is what others will see on the leaderboard and in trades.</p>
+    <input type="text" id="googleUsernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="confirmGoogleUsername()" style="width:100%">✅ Set Username</button>
+  </div>
+</div>
+
 <!-- PACK OPENING MODAL -->
 <div class="modal-overlay hidden" id="packModal">
   <div class="modal">
@@ -787,26 +798,23 @@ function signInWithGoogle(){
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).then(result=>{
       const user = result.user;
-      const name = user.displayName || user.email.split('@')[0];
       const uid = user.uid;
-      // Use Google UID as key, display name as username
-      const safeKey = uid;
-      db.ref('saves/'+safeKey).once('value').then(snap=>{
+      const suggestedName = user.displayName || user.email.split('@')[0];
+      // Check if returning user
+      db.ref('saves/'+uid).once('value').then(snap=>{
         const cloudSave = snap.val();
-        if(cloudSave){
+        if(cloudSave && cloudSave.username){
+          // Returning Google user - load their save
           G = cloudSave;
-          G.username = name;
           save();
-          notify('👋 Welcome back, '+name+'!');
+          notify('👋 Welcome back, '+G.username+'!');
+          closeLoginModal();
+          startGame();
         } else {
-          G = {username:name,passHash:'google_'+uid,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-            fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-            packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-          save();
-          notify('🎉 Welcome, '+name+'! Signed in with Google');
+          // New Google user - show username picker
+          closeLoginModal();
+          showGoogleUsernamePicker(uid, suggestedName);
         }
-        closeLoginModal();
-        startGame();
       });
     }).catch(err=>{
       notify('❌ Google sign-in failed: '+err.message);
@@ -814,6 +822,40 @@ function signInWithGoogle(){
   } catch(e) {
     notify('❌ Google sign-in not available right now');
   }
+}
+
+function showGoogleUsernamePicker(uid, suggestedName){
+  const modal = document.getElementById('googlePickerModal');
+  modal.classList.remove('hidden');
+  modal.style.display = '';
+  const inp = document.getElementById('googleUsernameInput');
+  inp.value = suggestedName;
+  // Store uid for use when confirming
+  modal.dataset.uid = uid;
+}
+
+function confirmGoogleUsername(){
+  const modal = document.getElementById('googlePickerModal');
+  const name = document.getElementById('googleUsernameInput').value.trim();
+  const uid = modal.dataset.uid;
+  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
+  // Check if username taken
+  const safeNameKey = name.replace(/[.#$\[\]]/g,'_');
+  db.ref('saves/'+safeNameKey).once('value').then(snap=>{
+    if(snap.val()&&snap.val().username===name){
+      notify('❌ That username is taken! Pick another');return;
+    }
+    // Create account
+    G={username:name,passHash:'google_'+uid,googleUid:uid,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();
+    // Also save under Google UID so returning login works
+    db.ref('saves/'+uid).set({username:name,googleUid:uid});
+    notify('🎉 Welcome, '+name+'! Account created');
+    modal.classList.add('hidden');modal.style.display='none';
+    startGame();
+  });
 }
 
 function closeLoginModal(){
