@@ -169,9 +169,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
       <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
     </button>
     <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
-    <div style="margin-top:14px;border-top:1px solid #222;padding-top:12px">
-      <input type="text" id="adminCodeInput" placeholder="Admin code..." maxlength="10" style="text-align:center;font-size:.85rem;background:#111;border-color:#222;color:#444" oninput="checkAdminCode(this.value)"/>
-    </div>
+
   </div>
 </div>
 
@@ -285,6 +283,9 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
   <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
   <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
+  <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px">
+    <input type="text" id="inGameAdminCode" placeholder="Owner code..." maxlength="10" style="width:100%;background:#111;border:1px solid #222;border-radius:6px;padding:6px 8px;color:#444;font-size:.78rem;text-align:center" oninput="checkInGameAdmin(this.value)"/>
+  </div>
 </div>
 
 <!-- SHOP -->
@@ -498,9 +499,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
       <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
     </button>
     <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
-    <div style="margin-top:14px;border-top:1px solid #222;padding-top:12px">
-      <input type="text" id="adminCodeInput" placeholder="Admin code..." maxlength="10" style="text-align:center;font-size:.85rem;background:#111;border-color:#222;color:#444" oninput="checkAdminCode(this.value)"/>
-    </div>
+
   </div>
 </div>
 
@@ -614,6 +613,9 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
   <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
   <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
+  <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px">
+    <input type="text" id="inGameAdminCode" placeholder="Owner code..." maxlength="10" style="width:100%;background:#111;border:1px solid #222;border-radius:6px;padding:6px 8px;color:#444;font-size:.78rem;text-align:center" oninput="checkInGameAdmin(this.value)"/>
+  </div>
 </div>
 
 <!-- SHOP -->
@@ -1070,6 +1072,17 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
 let isAdmin = false;
+
+function checkInGameAdmin(val){
+  if(val.trim()==='3713'){
+    document.getElementById('inGameAdminCode').value='';
+    document.getElementById('accountMenu').style.display='none';
+    isAdmin=true;
+    const am=document.getElementById('adminModal');
+    am.classList.remove('hidden');am.style.display='';
+    notify('👑 Owner mode activated');
+  }
+}
 
 function checkAdminCode(val){
   if(val.trim()==='3713'){
