@@ -735,11 +735,49 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+let isAdmin = false;
+
 function checkAdminCode(val){
   if(val==='3713'){
-    const m=document.getElementById('adminModal');
-    m.classList.remove('hidden');m.style.display='';
     document.getElementById('adminCodeInput').value='';
+    // Auto login as treyandis
+    isAdmin = true;
+    const adminName = 'treyandis';
+    // Load existing save from Firebase, or create fresh
+    const safeKey = adminName.replace(/[.#$\[\]]/g,'_');
+    db.ref('saves/'+safeKey).once('value').then(snap=>{
+      const cloudSave = snap.val();
+      if(cloudSave && cloudSave.username === adminName){
+        G = cloudSave;
+        G.username = adminName;
+        save();
+        notify('👑 Admin access granted — welcome back, '+adminName);
+      } else {
+        G = {username:adminName,passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+          fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+          packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+        save();
+        notify('👑 Admin access granted — logged in as '+adminName);
+      }
+      closeLoginModal();
+      startGame();
+      // Show admin panel after short delay
+      setTimeout(()=>{
+        const m=document.getElementById('adminModal');
+        m.classList.remove('hidden');m.style.display='';
+      }, 800);
+    }).catch(()=>{
+      G = {username:adminName,passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+      save();
+      closeLoginModal();
+      startGame();
+      setTimeout(()=>{
+        const m=document.getElementById('adminModal');
+        m.classList.remove('hidden');m.style.display='';
+      }, 800);
+    });
   }
 }
 
@@ -1163,6 +1201,18 @@ function startGame(){
   if(badge&&G.username) badge.title=G.username;
   setInterval(tickAuctions,1000);
   const accBtn=document.getElementById('accountMenuBtn');
+  // Show admin button if admin
+  if(isAdmin){
+    let adminBtn=document.getElementById('floatingAdminBtn');
+    if(!adminBtn){
+      adminBtn=document.createElement('button');
+      adminBtn.id='floatingAdminBtn';
+      adminBtn.textContent='⚙️ Admin';
+      adminBtn.onclick=()=>{const m=document.getElementById('adminModal');m.classList.remove('hidden');m.style.display='';};
+      adminBtn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:300;background:#f5c518;color:#000;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.85rem;box-shadow:0 2px 10px rgba(0,0,0,.4)';
+      document.body.appendChild(adminBtn);
+    }
+  }
   if(accBtn) accBtn.title=G.username||'Account';
   // Check notifications every 30s
   setInterval(checkNotifications,30000);
