@@ -749,7 +749,7 @@ function openAdminPanel(){
   // Login as treyandis and enter game
   G={username:'treyandis',passHash:'admin3713',coins:99999,inv:[],packsOpened:0,
     totalEarned:0,totalSpent:0,fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,
-    sellCount:0,packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],
+    sellCount:0,packsOpenedByType:{},packCooldowns:{},stagedCards:[],lastDaily:null,auctions:[],
     dailies:[],achDone:[],pendingPulled:[],faPool:[]};
   // Try loading existing save silently
   db.ref('saves/treyandis').once('value').then(snap=>{
@@ -1378,6 +1378,7 @@ function buyPack(packId, qty=1){
   if(G.coins<totalPrice){notify('❌ Not enough coins!');return;}
   
   // Check cooldown
+  if(!G.packCooldowns)G.packCooldowns={};
   if(G.packCooldowns&&G.packCooldowns[packId]>Date.now()){
     notify('⏳ Pack on cooldown!');return;
   }
