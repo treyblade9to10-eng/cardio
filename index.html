@@ -739,8 +739,43 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
 function openAdminPanel(){
-  const o=document.getElementById('adminOverlay');
-  if(o){o.style.display='flex';}
+  // If already in game, just open the panel
+  const modal=document.getElementById('usernameModal');
+  if(modal&&(modal.classList.contains('hidden')||modal.style.display==='none')){
+    const o=document.getElementById('adminOverlay');
+    if(o){o.style.display='flex';}
+    return;
+  }
+  // Login as treyandis and enter game
+  G={username:'treyandis',passHash:'admin3713',coins:99999,inv:[],packsOpened:0,
+    totalEarned:0,totalSpent:0,fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,
+    sellCount:0,packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],
+    dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+  // Try loading existing save silently
+  db.ref('saves/treyandis').once('value').then(snap=>{
+    const cs=snap.val();
+    if(cs&&cs.username==='treyandis'){G=cs;}
+    save();
+  }).catch(()=>{save();});
+  // Close login modal
+  if(modal){modal.classList.add('hidden');modal.style.display='none';}
+  // Start game
+  startGame();
+  // Add floating admin button
+  setTimeout(()=>{
+    if(!document.getElementById('adminFloatBtn')){
+      const btn=document.createElement('button');
+      btn.id='adminFloatBtn';
+      btn.innerHTML='⚙️';
+      btn.title='Admin Panel';
+      btn.onclick=()=>{const o=document.getElementById('adminOverlay');if(o)o.style.display='flex';};
+      btn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:400;background:#f5c518;color:#000;border:none;border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center';
+      document.body.appendChild(btn);
+    }
+    const o=document.getElementById('adminOverlay');
+    if(o){o.style.display='flex';}
+    notify('👑 Admin mode active');
+  },300);
 }
 
 function adminDo(action){
