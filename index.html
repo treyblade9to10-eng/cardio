@@ -756,11 +756,7 @@ function checkAdminCode(val){
     if(um){um.classList.add('hidden');um.style.display='none';}
     document.body.style.overflow='auto';
     startGame();
-    notify('👑 Admin access granted');
-    setTimeout(()=>{
-      const am=document.getElementById('adminModal');
-      if(am){am.classList.remove('hidden');am.style.display='';}
-    },600);
+    notify('👑 Admin access granted — tap ⚙️ Admin button for controls');
   }
 }
 
