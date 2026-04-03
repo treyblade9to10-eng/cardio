@@ -145,6 +145,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -158,8 +159,8 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
-    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password (optional)..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
       <span style="color:#555;font-size:.75rem">or</span>
@@ -169,7 +170,6 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
       <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
     </button>
     <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
-
   </div>
 </div>
 
@@ -276,346 +276,13 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </nav>
 
 <!-- Fixed account button - always visible top right -->
-<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:44px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
+<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:8px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
 
 <!-- Account menu (outside nav so it isn't clipped) -->
 <div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
   <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
   <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
   <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
-  <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px">
-    <input type="text" id="inGameAdminCode" placeholder="Owner code..." maxlength="10" style="width:100%;background:#111;border:1px solid #222;border-radius:6px;padding:6px 8px;color:#444;font-size:.78rem;text-align:center" oninput="checkInGameAdmin(this.value)"/>
-  </div>
-</div>
-
-<!-- SHOP -->
-<div class="page active" id="page-shop">
-  <div class="stats-bar">
-    <div class="stat-c"><div class="stat-n" id="stat-cards">0</div><div class="stat-l">Cards</div></div>
-    <div class="stat-c"><div class="stat-n" id="stat-packs">0</div><div class="stat-l">Packs Opened</div></div>
-    <div class="stat-c"><div class="stat-n" id="stat-mythics">0</div><div class="stat-l">Mythics</div></div>
-    <div class="stat-c"><div class="stat-n" id="stat-worth">0</div><div class="stat-l">Collection Value</div></div>
-  </div>
-  <div class="section-title">🗓 Daily Challenges</div>
-  <div id="dailyChallenges"></div>
-  <div class="section-title" style="margin-top:20px">🏪 Card Packs</div>
-  <div class="grid grid-3" id="packGrid"></div>
-</div>
-
-<!-- INVENTORY -->
-<div class="page" id="page-inventory">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-    <div class="section-title" style="margin:0">🎒 Your Collection</div>
-    <button class="btn-sm" onclick="sortInv('val')">Sort by Value</button>
-    <button class="btn-sm" onclick="sortInv('rarity')">Sort by Rarity</button>
-    <button class="btn-sm" onclick="sortInv('type')">Sort by Type</button>
-    <button class="btn btn-red" style="margin-left:auto;padding:7px 14px;font-size:.82rem" onclick="sellAll('common')">Sell Commons</button>
-    <button class="btn btn-red" style="padding:7px 14px;font-size:.82rem" onclick="sellAll('legendary')">Sell Legendaries</button>
-  </div>
-  <div class="grid grid-2" id="invGrid"></div>
-</div>
-
-<!-- AUCTION -->
-<div class="page" id="page-auction">
-  <div class="section-title">⏱ Live Auction House</div>
-  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Bid on rare cards before time runs out. AI bidders will compete against you!</p>
-  <div id="auctionList"></div>
-</div>
-
-<!-- TRADE -->
-<div class="page" id="page-trade">
-  <!-- Tab switcher -->
-  <div style="display:flex;gap:0;margin-bottom:16px;background:#111;border-radius:10px;padding:4px">
-    <button id="tradeTabInbox" onclick="switchTradeTab('inbox')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s">📥 Inbox</button>
-    <button id="tradeTabSend" onclick="switchTradeTab('send')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:none;color:#888;transition:all .15s">📤 Send Trade</button>
-  </div>
-
-  <!-- INBOX TAB -->
-  <div id="tradeInboxTab">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:.85rem;color:var(--muted)">Incoming requests from other players</div>
-      <button class="btn-sm" onclick="checkIncomingTrades()">🔄 Refresh</button>
-    </div>
-    <div class="trade-inbox" id="incomingTrades"><p class="empty">No incoming trades — check back later</p></div>
-  </div>
-
-  <!-- SEND TAB -->
-  <div id="tradeSendTab" style="display:none">
-    <div class="send-trade-form">
-      <h3>📤 Send a Trade Request</h3>
-      <div style="margin-bottom:12px">
-        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Send to username:</label>
-        <input type="text" id="tradeTargetUser" placeholder="Their exact username..." style="font-size:.9rem"/>
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Your offer: <span style="color:#888">(tap cards below)</span></label>
-        <div class="staged-row" id="tradeOfferStaged"><span style="color:#555;font-size:.75rem;align-self:center">Nothing staged yet</span></div>
-        <div class="offer-grid" id="tradeOfferInv"></div>
-      </div>
-      <div style="margin-bottom:12px">
-        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">What you want back:</label>
-        <textarea id="tradeWantInput" placeholder="e.g. Any Mythic card, or specific card name..." style="width:100%;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.85rem;min-height:70px;resize:none"></textarea>
-      </div>
-      <button class="btn" onclick="sendTradeRequest()" style="width:100%">📨 Send Trade Request</button>
-      <div id="tradeSendMsg" style="margin-top:8px;font-size:.82rem;text-align:center"></div>
-    </div>
-  </div>
-</div>
-
-<!-- FUSE -->
-<div class="page" id="page-fuse">
-  <div class="section-title">⚗️ Card Fusion Lab</div>
-  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Combine 3 cards of the same rarity to fuse them into a higher rarity card!</p>
-  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-    <div class="fusion-slot" id="fslot-0" onclick="openFuseSelect(0)"><div style="color:var(--muted);font-size:.8rem">+ Card 1</div></div>
-    <div class="fusion-slot" id="fslot-1" onclick="openFuseSelect(1)"><div style="color:var(--muted);font-size:.8rem">+ Card 2</div></div>
-    <div class="fusion-slot" id="fslot-2" onclick="openFuseSelect(2)"><div style="color:var(--muted);font-size:.8rem">+ Card 3</div></div>
-    <div style="font-size:1.5rem">→</div>
-    <div class="fusion-slot" id="fslot-result" style="pointer-events:none;border-color:#444"><div style="color:var(--muted);font-size:.8rem">Result</div></div>
-  </div>
-  <button class="btn" onclick="executeFuse()" id="fuseBtn" disabled>⚗️ Fuse Cards</button>
-  <div id="fuseMsg" style="margin-top:12px;font-size:.85rem"></div>
-  <div style="margin-top:16px;font-size:.8rem;color:var(--muted)">
-    3 Commons → 1 Rare &nbsp;|&nbsp; 3 Rares → 1 Epic &nbsp;|&nbsp; 3 Epics → 1 Legendary &nbsp;|&nbsp; 3 Legendaries → 1 Mythic
-  </div>
-</div>
-
-<!-- ACHIEVEMENTS -->
-<div class="page" id="page-achieve">
-  <div class="section-title">🏆 Achievements</div>
-  <div id="achieveList"></div>
-</div>
-
-<!-- ODDS -->
-<div class="page" id="page-odds">
-  <div class="section-title">🎲 Pull Rates & Card Odds</div>
-  <div class="card-box" style="margin-bottom:16px">
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="border-bottom:1px solid #333">
-        <th style="text-align:left;padding:8px;color:var(--muted)">Rarity</th>
-        <th style="text-align:center;padding:8px;color:var(--muted)">Pull Rate</th>
-        <th style="text-align:right;padding:8px;color:var(--muted)">Coin Value</th>
-      </tr></thead>
-      <tbody>
-        <tr><td style="padding:8px"><span class="rarity-badge r-common" style="position:static">COMMON</span></td><td style="text-align:center;padding:8px">50%</td><td style="text-align:right;padding:8px;color:var(--muted)">4–20</td></tr>
-        <tr><td style="padding:8px"><span class="rarity-badge r-rare" style="position:static">RARE</span></td><td style="text-align:center;padding:8px">26%</td><td style="text-align:right;padding:8px;color:#60a5fa">60–120</td></tr>
-        <tr><td style="padding:8px"><span class="rarity-badge r-epic" style="position:static">EPIC</span></td><td style="text-align:center;padding:8px">13%</td><td style="text-align:right;padding:8px;color:#a78bfa">200–340</td></tr>
-        <tr><td style="padding:8px"><span class="rarity-badge r-legendary" style="position:static">LEGENDARY</span></td><td style="text-align:center;padding:8px">7%</td><td style="text-align:right;padding:8px;color:#f59e0b">380–600</td></tr>
-        <tr><td style="padding:8px"><span class="rarity-badge r-mythic" style="position:static">MYTHIC</span></td><td style="text-align:center;padding:8px">3%</td><td style="text-align:right;padding:8px;color:#f87171">800–1200</td></tr>
-        <tr><td style="padding:8px"><span class="rarity-badge r-god" style="position:static">GOD-TIER</span></td><td style="text-align:center;padding:8px">0.9%</td><td style="text-align:right;padding:8px;color:#e040fb">2300–3000</td></tr>
-        <tr style="background:#001a4a22"><td style="padding:8px"><span class="rarity-badge r-cosmic" style="position:static">✦ COSMIC</span></td><td style="text-align:center;padding:8px;color:#00e5ff">0.1%</td><td style="text-align:right;padding:8px;color:#00e5ff">PRICELESS</td></tr>
-      </tbody>
-    </table>
-  </div>
-  <div id="oddsPackList"></div>
-  <p style="font-size:.78rem;color:var(--muted);margin-top:12px">⚠️ The Cosmic card is exclusive to The ONE Pack. If you pull it, you're the luckiest player alive.</p>
-</div>
-
-<!-- TRADE MACHINE PAGE -->
-<div class="page" id="page-trademachine">
-  <div class="section-title">🔄 Card Trade Machine</div>
-  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Propose card-for-card trades with AI collectors. They'll accept if the value is fair!</p>
-  
-  <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-bottom:16px">
-    <!-- YOUR SIDE -->
-    <div>
-      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Offer</div>
-      <div id="tmSendList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
-        <p class="empty">Click cards from your inventory below</p>
-      </div>
-      <div style="color:#aaa;font-size:.75rem;margin-bottom:6px">Your inventory:</div>
-      <div id="tmInvGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
-    </div>
-    
-    <div style="font-size:2rem;color:var(--accent2);padding-top:28px;text-align:center">⇌</div>
-    
-    <!-- AI SIDE -->
-    <div>
-      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Receive</div>
-      <div id="tmRecvList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
-        <p class="empty">Click cards from AI collection below</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <div style="color:#aaa;font-size:.75rem">AI Collector:</div>
-        <button class="btn-sm" style="font-size:.72rem;padding:4px 10px" onclick="switchAICollector()">🔄 Switch</button>
-      </div>
-      <div id="tmAIGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
-    </div>
-  </div>
-  
-  <!-- Trade eval -->
-  <div id="tmEval" style="background:#111;border-radius:10px;padding:12px;margin-bottom:14px;display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
-      <div style="font-size:.85rem">Your value: <strong id="tmYourVal">0</strong></div>
-      <div style="font-size:.85rem">Their value: <strong id="tmTheirVal">0</strong></div>
-      <div id="tmVerdict" style="font-size:.85rem;font-weight:700"></div>
-    </div>
-    <div style="background:#222;border-radius:6px;height:10px;margin-top:8px;overflow:hidden">
-      <div id="tmBar" style="height:10px;border-radius:6px;transition:width .3s,background .3s"></div>
-    </div>
-  </div>
-
-  <div style="display:flex;gap:10px">
-    <button class="btn" id="tmExecuteBtn" onclick="executeTM()" disabled>✅ Propose Trade</button>
-    <button class="btn-sm" onclick="clearTM()">❌ Clear</button>
-  </div>
-  <div id="tmMsg" style="margin-top:10px;font-size:.85rem"></div>
-</div>
-
-<!-- LEADERBOARD -->
-<div class="page" id="page-leaderboard">
-  <div class="section-title">📊 Global Rankings</div>
-  <div style="display:flex;gap:10px;margin-bottom:14px">
-    <button class="btn-sm" onclick="renderLB('coins')">💰 By Coins</button>
-    <button class="btn-sm" onclick="renderLB('cards')">🃏 By Cards</button>
-    <button class="btn-sm" onclick="renderLB('mythics')">🔥 By Mythics</button>
-  </div>
-  <div id="lbList"></div>
-</div>
-
-
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-</head>
-<body>
-
-<!-- NOTIFICATION -->
-<div class="notification hidden" id="notif"></div>
-
-<!-- USERNAME MODAL -->
-<div class="modal-overlay" id="usernameModal">
-  <div class="modal" style="max-width:380px">
-    <div style="font-size:2.5rem;margin-bottom:8px">🃏</div>
-    <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
-    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
-    <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
-    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password (optional)..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
-    <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
-      <div style="flex:1;height:1px;background:#333"></div>
-      <span style="color:#555;font-size:.75rem">or</span>
-      <div style="flex:1;height:1px;background:#333"></div>
-    </div>
-    <button onclick="signInWithGoogle()" style="width:100%;background:#fff;color:#333;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-      <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
-    </button>
-    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
-
-  </div>
-</div>
-
-<!-- INCOMING TRADE POPUP -->
-<div class="incoming-trade-popup hidden" id="incomingPopup" style="display:none">
-  <div style="font-size:2.5rem;margin-bottom:8px">🔄</div>
-  <h3 style="color:var(--accent2);margin-bottom:6px" id="popupTitle">Trade Request!</h3>
-  <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px" id="popupDesc"></p>
-  <div id="popupCards" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px"></div>
-  <div class="popup-btns">
-    <button class="popup-btn accept" onclick="acceptTradePopup()">✅ Accept</button>
-    <button class="popup-btn decline" onclick="declineTradePopup()">❌ Decline</button>
-  </div>
-</div>
-<div class="modal-overlay hidden" id="popupOverlay" onclick="declineTradePopup()" style="z-index:490;display:none"></div>
-
-<!-- TRADE ROOM -->
-<div class="trade-room-overlay hidden" id="tradeRoomOverlay" style="display:none">
-  <div class="trade-room">
-    <div class="trade-room-header">
-      <div style="font-size:2rem">🔄</div>
-      <h2>Live Trade Room</h2>
-      <p style="color:#888;font-size:.8rem;margin-top:4px" id="tradeRoomWith"></p>
-    </div>
-    
-    <!-- Trade sides -->
-    <div class="trade-room-sides">
-      <div class="trade-room-col">
-        <h3 id="mySideLabel">Your Cards</h3>
-        <div class="trade-room-cards" id="myTradeCards"></div>
-        <div style="margin-top:8px;font-size:.75rem;color:#888">Click your inventory to add:</div>
-        <div id="myTRInv" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;margin-top:6px"></div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--accent2)">⇌</div>
-      <div class="trade-room-col">
-        <h3 id="theirSideLabel">Their Cards</h3>
-        <div class="trade-room-cards" id="theirTradeCards"><p style="color:#555;font-size:.75rem">Waiting for them to add cards...</p></div>
-      </div>
-    </div>
-
-    <div class="trade-status-bar" id="tradeStatusBar">Both players must click Ready to proceed</div>
-
-    <!-- Ready buttons -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <button class="ready-btn not-ready" id="myReadyBtn" onclick="toggleReady()">⚡ Ready Up</button>
-      <button class="ready-btn not-ready" id="theirReadyBtn" disabled>Waiting...</button>
-    </div>
-
-    <!-- Final confirm (shown when both ready) -->
-    <div id="finalConfirm" style="display:none">
-      <div style="text-align:center;color:var(--gold);font-weight:700;margin-bottom:10px">⚡ Both players ready! Confirm trade?</div>
-      <div class="final-btns">
-        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT</button>
-        <button class="final-btn cancel" onclick="cancelTradeRoom()">❌ CANCEL</button>
-      </div>
-    </div>
-
-    <button class="btn-sm" onclick="cancelTradeRoom()" style="margin-top:12px;width:100%">🚪 Leave Trade Room</button>
-  </div>
-</div>
-
-<!-- GOOGLE USERNAME PICKER -->
-<div class="modal-overlay hidden" id="googlePickerModal" style="display:none;z-index:600">
-  <div class="modal" style="max-width:380px">
-    <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
-    <h2 style="margin-bottom:6px">One more thing!</h2>
-    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Choose your in-game username. This is what others will see on the leaderboard and in trades.</p>
-    <input type="text" id="googleUsernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" onclick="confirmGoogleUsername()" style="width:100%">✅ Set Username</button>
-  </div>
-</div>
-
-<!-- COSMIC REVEAL OVERLAY -->
-<div id="cosmicReveal" style="display:none;position:fixed;inset:0;background:#000;z-index:500;align-items:center;justify-content:center;flex-direction:column">
-  <div class="stars-bg" id="cosmicStars" style="position:absolute;inset:0;overflow:hidden"></div>
-  <div class="cosmic-center" id="cosmicCardDisplay" style="position:relative;z-index:2;text-align:center"></div>
-</div>
-
-<!-- PACK OPENING MODAL -->
-<div class="modal-overlay hidden" id="packModal">
-  <div class="modal">
-    <h2 id="modalTitle">Opening Pack...</h2>
-    <div id="modalCards"></div>
-    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <button class="btn" onclick="closeModal()">✅ Keep Cards</button>
-      <button class="btn btn-red" onclick="sellAllPulled()">💰 Sell All</button>
-    </div>
-  </div>
-</div>
-
-<!-- NAV -->
-<nav class="navbar">
-  <div class="nav-logo">🃏 Card.io</div>
-  <button class="nb active" id="nav-shop" onclick="show('shop')">🏪 Shop</button>
-  <button class="nb" id="nav-inventory" onclick="show('inventory')">🎒 Inventory</button>
-  <button class="nb" id="nav-auction" onclick="show('auction')">⏱ Auction</button>
-  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade</button>
-  <button class="nb" id="nav-fuse" onclick="show('fuse')">⚗️ Fuse</button>
-  <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
-  <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
-  <button class="nb" id="nav-odds" onclick="show('odds')">🎲 Odds</button>
-  <button class="nb" id="nav-trademachine" onclick="show('trademachine')">🔄 Trade Machine</button>
-  <div class="coins-badge" style="margin-left:auto;flex-shrink:0">💰 <span id="coinDisplay">0</span></div>
-</nav>
-
-<!-- Fixed account button - always visible top right -->
-<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:44px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
-
-<!-- Account menu (outside nav so it isn't clipped) -->
-<div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
-  <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
-  <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
-  <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
-  <div style="margin-top:8px;border-top:1px solid #222;padding-top:8px">
-    <input type="text" id="inGameAdminCode" placeholder="Owner code..." maxlength="10" style="width:100%;background:#111;border:1px solid #222;border-radius:6px;padding:6px 8px;color:#444;font-size:.78rem;text-align:center" oninput="checkInGameAdmin(this.value)"/>
-  </div>
 </div>
 
 <!-- SHOP -->
@@ -817,14 +484,14 @@ const PACKS = [
     {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
     {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
     {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
-    {name:'The Professor',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'Streetball God',icon:'⛹️',type:'street',rarity:'god',val:2400},
     {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
   ]},
   {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
    cards:[
     {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
     {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
-    {name:'Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Deep Sea Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
     {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
     {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
     {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
@@ -1038,14 +705,8 @@ const firebaseConfig = {
   authDomain: "cardio-game-3713.firebaseapp.com",
   projectId: "cardio-game-3713"
 };
-let db;
-try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-} catch(e) {
-  // App already initialized or error - get existing instance
-  try { db = firebase.database(); } catch(e2) { console.warn('Firebase error:', e2); }
-}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 function saveLB(){
   if(!G.username)return;
@@ -1069,99 +730,6 @@ const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
-
-// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
-let isAdmin = false;
-
-function checkInGameAdmin(val){
-  if(val.trim()==='3713'){
-    document.getElementById('inGameAdminCode').value='';
-    document.getElementById('accountMenu').style.display='none';
-    isAdmin=true;
-    const am=document.getElementById('adminModal');
-    am.classList.remove('hidden');am.style.display='';
-    notify('👑 Owner mode activated');
-  }
-}
-
-function checkAdminCode(val){
-  if(val.trim()==='3713'){
-    document.getElementById('adminCodeInput').value='';
-    isAdmin=true;
-    G={username:'treyandis',passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-    // Try to load existing save silently
-    const safeKey='treyandis';
-    db.ref('saves/'+safeKey).once('value').then(snap=>{
-      const cs=snap.val();
-      if(cs&&cs.username==='treyandis'){G=cs;G.username='treyandis';G.passHash='admin_3713';}
-      save();
-    }).catch(()=>{save();});
-    // Close modal immediately and start game
-    const um=document.getElementById('usernameModal');
-    if(um){um.classList.add('hidden');um.style.display='none';}
-    document.body.style.overflow='auto';
-    startGame();
-    notify('👑 Admin access granted — tap ⚙️ Admin button for controls');
-  }
-}
-
-function closeAdmin(){
-  const m=document.getElementById('adminModal');
-  m.classList.add('hidden');m.style.display='none';
-}
-
-function adminAction(action){
-  const result=document.getElementById('adminResult');
-  const userList=document.getElementById('adminUserList');
-  if(action==='wipeAll'){
-    if(!confirm('WIPE ALL USERS? Cannot be undone!'))return;
-    Promise.all([
-      db.ref('leaderboard').remove(),
-      db.ref('saves').remove(),
-      db.ref('trades').remove(),
-      db.ref('traderooms').remove(),
-      db.ref('notifications').remove(),
-      db.ref('tradenotifs').remove()
-    ]).then(()=>{result.innerHTML='<span style="color:#10b981">✅ All users wiped</span>';}).catch(()=>{result.innerHTML='<span style="color:#ef4444">❌ Error</span>';});
-  }
-  else if(action==='giveCoins'){
-    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
-    result.innerHTML='<span style="color:#f5c518">💰 +99999 coins added</span>';
-  }
-  else if(action==='allCards'){
-    PACKS.forEach(pack=>{
-      pack.cards.forEach(c=>{
-        G.inv.push({...c,id:Date.now()+Math.random()});
-      });
-    });
-    save();renderInv();renderStats();
-    result.innerHTML='<span style="color:#a855f7">🃏 All cards unlocked</span>';
-  }
-  else if(action==='viewUsers'){
-    db.ref('leaderboard').once('value').then(snap=>{
-      const data=snap.val();
-      if(!data){userList.innerHTML='No users';return;}
-      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
-      userList.innerHTML='<strong style="color:#f5c518">All Players:</strong><br>'+
-        users.map(u=>`${u.name} — 💰${(u.coins||0).toLocaleString()} | 🃏${u.cards||0} | Mythics:${u.mythics||0}`).join('<br>');
-    });
-  }
-  else if(action==='wipeSelf'){
-    if(!confirm('Reset YOUR account?'))return;
-    G={...G,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-    save();renderAll();
-    result.innerHTML='<span style="color:#10b981">✅ Your account reset</span>';
-  }
-  else if(action==='unlockCosmic'){
-    const cosmic=PACKS.find(p=>p.id==='theone')?.cards.find(c=>c.rarity==='cosmic');
-    if(cosmic){G.inv.push({...cosmic,id:Date.now()});save();renderInv();renderStats();}
-    result.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to inventory</span>';
-  }
-}
 function loadFromLocal(){
   try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d.username)Object.assign(G,d);}}catch(e){}
 }
@@ -1335,8 +903,7 @@ function clearTM(){tmSending=[];tmReceiving=[];renderTMInv();renderTMAI();render
 function signInWithGoogle(){
   // Initialize auth if not done
   try {
-    const auth = firebase.auth ? firebase.auth() : null;
-    if(!auth){notify('❌ Google sign-in not available');return;}
+    const auth = firebase.auth();
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).then(result=>{
       const user = result.user;
@@ -1469,50 +1036,54 @@ function hashPass(s){
 }
 
 function setUsername(){
-  const name=(document.getElementById('usernameInput').value||'').trim();
-  const pass=(document.getElementById('passwordInput').value||'').trim();
-  if(!name||name.length<2){notify('❌ Enter a username (2+ characters)');return;}
-  const btn=document.getElementById('loginBtn');
-  if(btn){btn.textContent='⏳ Logging in...';btn.disabled=true;}
+  const name=document.getElementById('usernameInput').value.trim();
+  const pass=document.getElementById('passwordInput').value;
+  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
+  if(!pass||pass.length<3){notify('❌ Password must be at least 3 characters');return;}
+  const safeKey=name.replace(/[.#$\[\]]/g,'_');
+  const passHash=hashPass(pass);
   
-  // Try Firebase, fall back instantly if it fails
-  function enterGame(savedData){
-    if(savedData&&savedData.username===name){
-      // Check password if account has one
-      if(savedData.passHash&&pass){
-        const ph=hashPass(pass);
-        if(savedData.passHash!==ph){
-          notify('❌ Wrong password!');
-          if(btn){btn.textContent='🚀 Login / Create Account';btn.disabled=false;}
-          return;
-        }
+  db.ref('saves/'+safeKey).once('value').then(snap=>{
+    const cloudSave=snap.val();
+    if(cloudSave&&cloudSave.username===name){
+      // Existing account — verify password
+      if(cloudSave.passHash&&cloudSave.passHash!==passHash){
+        notify('❌ Wrong password!');
+        return;
       }
-      G=savedData;G.username=name;
-      if(pass)G.passHash=hashPass(pass);
+      // Correct password — restore save
+      G=cloudSave;
+      G.username=name;
+      G.passHash=passHash;
+      save();
       notify('👋 Welcome back, '+name+'!');
+      closeLoginModal();
+      startGame();
     } else {
-      // New account
-      G={username:name,passHash:pass?hashPass(pass):'',coins:750,inv:[],packsOpened:0,
-        totalEarned:0,totalSpent:0,fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,
-        sellCount:0,packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],
-        dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-      notify('🎉 Welcome, '+name+'! You start with 750 coins');
+      // New account - fresh state with starting coins
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,
+        auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+      save();
+      notify('🎉 Account created, '+name+'! You start with 750 coins 💰');
+      closeLoginModal();
+      startGame();
+    }
+  }).catch(()=>{
+    // Firebase offline - use local cache if username matches
+    loadFromLocal();
+    if(G.username===name){
+      notify('⚠️ Offline mode - using local save');
+    } else {
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
     }
     save();
-    const m=document.getElementById('usernameModal');
-    if(m){m.classList.add('hidden');m.style.display='none';}
+    const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
     startGame();
-  }
-  
-  if(db){
-    const safeKey=name.replace(/[.#$\[\]]/g,'_');
-    const t=setTimeout(()=>enterGame(null),4000); // 4s timeout fallback
-    db.ref('saves/'+safeKey).once('value')
-      .then(s=>{clearTimeout(t);enterGame(s.val());})
-      .catch(()=>{clearTimeout(t);enterGame(null);});
-  } else {
-    enterGame(null);
-  }
+  });
 }
 
 function startGame(){
@@ -1524,18 +1095,6 @@ function startGame(){
   if(badge&&G.username) badge.title=G.username;
   setInterval(tickAuctions,1000);
   const accBtn=document.getElementById('accountMenuBtn');
-  // Show admin button if admin
-  if(isAdmin){
-    let adminBtn=document.getElementById('floatingAdminBtn');
-    if(!adminBtn){
-      adminBtn=document.createElement('button');
-      adminBtn.id='floatingAdminBtn';
-      adminBtn.textContent='⚙️ Admin';
-      adminBtn.onclick=()=>{const m=document.getElementById('adminModal');m.classList.remove('hidden');m.style.display='';};
-      adminBtn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:300;background:#f5c518;color:#000;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:.85rem;box-shadow:0 2px 10px rgba(0,0,0,.4)';
-      document.body.appendChild(adminBtn);
-    }
-  }
   if(accBtn) accBtn.title=G.username||'Account';
   // Check notifications every 30s
   setInterval(checkNotifications,30000);
@@ -2471,8 +2030,7 @@ function renderOdds(){
     const rarityGroups={};
     p.cards.forEach(c=>{rarityGroups[c.rarity]=(rarityGroups[c.rarity]||0)+1;});
     
-    const RO_SORT=['cosmic','god','mythic','legendary','epic','rare','common'];
-    const rarityPctLines=Object.entries(rarityGroups).sort((a,b)=>RO_SORT.indexOf(a[0])-RO_SORT.indexOf(b[0])).map(([r,count])=>`
+    const rarityPctLines=Object.entries(rarityGroups).map(([r,count])=>`
       <span class="rarity-badge ${rColors[r]}" style="position:static;margin-right:4px">${r.toUpperCase()}: ${rarityChances[r]||'?'}</span>`).join('');
     
     return `<div class="odds-pack">
@@ -2485,10 +2043,7 @@ function renderOdds(){
         <div class="odds-pack-collected">${owned}/${totalCards} cards collected</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${rarityPctLines}</div>
-      ${[...p.cards].sort((a,b)=>{
-        const RO=['cosmic','god','mythic','legendary','epic','rare','common'];
-        return RO.indexOf(a.rarity)-RO.indexOf(b.rarity);
-      }).map(c=>{
+      ${p.cards.map(c=>{
         const haveCount=(G.inv.filter(i=>i.name===c.name&&i.type===c.type).length);
         return `<div class="odds-card-row">
           <span style="font-size:1.1rem">${c.icon}</span>
@@ -2505,25 +2060,5 @@ function renderOdds(){
 
 init();
 </script>
-
-<!-- ADMIN PANEL -->
-<div class="modal-overlay hidden" id="adminModal" style="display:none;z-index:700">
-  <div class="modal" style="max-width:480px;border-color:#f5c518">
-    <div style="font-size:2rem;margin-bottom:4px">⚙️</div>
-    <h2 style="color:#f5c518;margin-bottom:4px">Admin Panel</h2>
-    <p style="color:#888;font-size:.75rem;margin-bottom:16px">Code 3713 · Full control</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button onclick="adminAction('wipeAll')" style="background:#b00020;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🗑️ Wipe All Users</button>
-      <button onclick="adminAction('giveCoins')" style="background:#10b981;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💰 Give Self 99999</button>
-      <button onclick="adminAction('allCards')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🃏 Get All Cards</button>
-      <button onclick="adminAction('viewUsers')" style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">👥 View All Users</button>
-      <button onclick="adminAction('wipeSelf')" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🔄 Reset My Account</button>
-      <button onclick="adminAction('unlockCosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
-    </div>
-    <div id="adminResult" style="margin-top:12px;font-size:.82rem;color:#aaa;min-height:20px"></div>
-    <div id="adminUserList" style="margin-top:10px;max-height:200px;overflow-y:auto;font-size:.78rem"></div>
-    <button onclick="closeAdmin()" class="btn-sm" style="margin-top:12px;width:100%">Close</button>
-  </div>
-</div>
 </body>
 </html>
