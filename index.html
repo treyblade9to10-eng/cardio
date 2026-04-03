@@ -783,6 +783,7 @@ function adminDo(action){
   const ulist=document.getElementById('adminUserList');
   msg.innerHTML='<span style="color:#888">Working...</span>';
   ulist.innerHTML='';
+  if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Firebase not ready — open admin from in-game only</span>';return;}
   if(action==='wipe'){
     if(!confirm('Wipe ALL user data? Cannot be undone!'))return;
     Promise.all(['leaderboard','saves','trades','traderooms','notifications','tradenotifs'].map(r=>db.ref(r).remove()))
@@ -1365,7 +1366,8 @@ function showPackModal(packName,cards,hasCosmic=false){
     </div>`;
   }).join('');
   
-  document.getElementById('packModal').classList.remove('hidden');
+  const pm=document.getElementById('packModal');
+  pm.classList.remove('hidden');pm.style.display='flex';
   
   // Cosmic reveal sequence
   if(hasCosmic){
@@ -1417,7 +1419,8 @@ function closeModal(){
   G.inv.push(...G.pendingPulled);
   G.pendingPulled=[];
   save();checkAchievements();renderInv();renderStats();
-  document.getElementById('packModal').classList.add('hidden');
+  const pm2=document.getElementById('packModal');
+  pm2.classList.add('hidden');pm2.style.display='none';
   notify(`🃏 ${count} cards added to inventory!`);
 }
 
@@ -1426,7 +1429,8 @@ function sellAllPulled(){
   G.coins+=earned;G.totalEarned+=earned;
   G.pendingPulled=[];
   save();updateCoins();renderStats();
-  document.getElementById('packModal').classList.add('hidden');
+  const pm2=document.getElementById('packModal');
+  pm2.classList.add('hidden');pm2.style.display='none';
   notify(`💰 Sold all for ${earned} coins!`);
 }
 
