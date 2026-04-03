@@ -738,46 +738,29 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 let isAdmin = false;
 
 function checkAdminCode(val){
-  if(val==='3713'){
+  if(val.trim()==='3713'){
     document.getElementById('adminCodeInput').value='';
-    // Auto login as treyandis
-    isAdmin = true;
-    const adminName = 'treyandis';
-    // Load existing save from Firebase, or create fresh
-    const safeKey = adminName.replace(/[.#$\[\]]/g,'_');
+    isAdmin=true;
+    G={username:'treyandis',passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    // Try to load existing save silently
+    const safeKey='treyandis';
     db.ref('saves/'+safeKey).once('value').then(snap=>{
-      const cloudSave = snap.val();
-      if(cloudSave && cloudSave.username === adminName){
-        G = cloudSave;
-        G.username = adminName;
-        save();
-        notify('👑 Admin access granted — welcome back, '+adminName);
-      } else {
-        G = {username:adminName,passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-          fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-          packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-        save();
-        notify('👑 Admin access granted — logged in as '+adminName);
-      }
-      closeLoginModal();
-      startGame();
-      // Show admin panel after short delay
-      setTimeout(()=>{
-        const m=document.getElementById('adminModal');
-        m.classList.remove('hidden');m.style.display='';
-      }, 800);
-    }).catch(()=>{
-      G = {username:adminName,passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+      const cs=snap.val();
+      if(cs&&cs.username==='treyandis'){G=cs;G.username='treyandis';G.passHash='admin_3713';}
       save();
-      closeLoginModal();
-      startGame();
-      setTimeout(()=>{
-        const m=document.getElementById('adminModal');
-        m.classList.remove('hidden');m.style.display='';
-      }, 800);
-    });
+    }).catch(()=>{save();});
+    // Close modal immediately and start game
+    const um=document.getElementById('usernameModal');
+    if(um){um.classList.add('hidden');um.style.display='none';}
+    document.body.style.overflow='auto';
+    startGame();
+    notify('👑 Admin access granted');
+    setTimeout(()=>{
+      const am=document.getElementById('adminModal');
+      if(am){am.classList.remove('hidden');am.style.display='';}
+    },600);
   }
 }
 
