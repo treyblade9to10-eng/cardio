@@ -1464,7 +1464,8 @@ function showPackModal(packName,cards,hasCosmic=false){
     pmEl.classList.remove('hidden');
     pmEl.style.display='flex';
     pmEl.style.position='fixed';
-    pmEl.style.zIndex='999';
+    pmEl.style.inset='0';
+    pmEl.style.zIndex='10000';
   }
   
   // Cosmic reveal sequence
