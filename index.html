@@ -737,92 +737,12 @@ const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catc
 // ── ADMIN PANEL ───────────────────────────────────────────────────────────────
 let isAdmin = false;
 
-function checkAdminCode(val){
-  if(val.trim()==='3713'){
-    document.getElementById('adminCodeInput').value='';
-    isAdmin=true;
-    G={username:'treyandis',passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-    // Try to load existing save silently
-    const safeKey='treyandis';
-    db.ref('saves/'+safeKey).once('value').then(snap=>{
-      const cs=snap.val();
-      if(cs&&cs.username==='treyandis'){G=cs;G.username='treyandis';G.passHash='admin_3713';}
-      save();
-    }).catch(()=>{save();});
-    // Close modal immediately and start game
-    const um=document.getElementById('usernameModal');
-    if(um){um.classList.add('hidden');um.style.display='none';}
-    document.body.style.overflow='auto';
-    startGame();
-    notify('👑 Admin access granted — tap ⚙️ Admin button for controls');
-  }
-}
 
 function closeAdmin(){
   const m=document.getElementById('adminModal');
   m.classList.add('hidden');m.style.display='none';
 }
 
-function adminAction(action){
-  const result=document.getElementById('adminResult');
-  const userList=document.getElementById('adminUserList');
-  result.innerHTML='<span style="color:#888">Working...</span>';
-  
-  if(action==='wipeAll'){
-    if(!confirm('WIPE ALL USERS? Cannot be undone!'))return;
-    Promise.all([
-      db.ref('leaderboard').remove(),
-      db.ref('saves').remove(),
-      db.ref('trades').remove(),
-      db.ref('traderooms').remove(),
-      db.ref('notifications').remove(),
-      db.ref('tradenotifs').remove()
-    ]).then(()=>{result.innerHTML='<span style="color:#10b981">✅ All users wiped</span>';userList.innerHTML='';})
-    .catch(e=>{result.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';});
-  }
-  else if(action==='giveCoins'){
-    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
-    result.innerHTML='<span style="color:#f5c518">💰 +99999 coins added!</span>';
-  }
-  else if(action==='allCards'){
-    PACKS.forEach(pack=>{pack.cards.forEach(c=>{G.inv.push({...c,id:Date.now()+Math.random()});});});
-    save();renderInv();renderStats();
-    result.innerHTML='<span style="color:#a855f7">🃏 All '+G.inv.length+' cards added!</span>';
-  }
-  else if(action==='viewUsers'){
-    result.innerHTML='<span style="color:#888">Loading...</span>';
-    db.ref('leaderboard').once('value').then(snap=>{
-      const data=snap.val();
-      if(!data){userList.innerHTML='<p style="color:#888">No users yet</p>';result.innerHTML='';return;}
-      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
-      result.innerHTML='<span style="color:#60a5fa">'+users.length+' players found</span>';
-      userList.innerHTML='<div style="font-size:.72rem;color:#f5c518;margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px">All Players</div>'+
-        users.map(u=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1a1a2e">
-          <div style="flex:1">
-            <div style="font-weight:600">${u.name||'?'}</div>
-            <div style="color:#888;font-size:.68rem">💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0} · Mythics:${u.mythics||0}${u.gods?' · 👁️'+u.gods:''}</div>
-          </div>
-          <button onclick="adminDeleteUser('${(u.name||'').replace(/'/g,'&#39;')}')" style="background:#b00020;color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;flex-shrink:0">🗑️ Delete</button>
-        </div>`).join('');
-    }).catch(e=>{result.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';});
-  }
-  else if(action==='wipeSelf'){
-    if(!confirm('Reset YOUR account to fresh start?'))return;
-    G={...G,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-    save();renderAll();
-    result.innerHTML='<span style="color:#10b981">✅ Your account reset to fresh start</span>';
-  }
-  else if(action==='unlockCosmic'){
-    const cosmic=PACKS.flatMap(p=>p.cards).find(c=>c.rarity==='cosmic');
-    if(cosmic){G.inv.push({...cosmic,id:Date.now()});save();renderInv();renderStats();
-      result.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added!</span>';}
-    else result.innerHTML='<span style="color:#ef4444">❌ No cosmic found in packs</span>';
-  }
-}
 
 function adminDeleteUser(username){
   if(!username)return;
