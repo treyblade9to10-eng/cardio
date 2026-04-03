@@ -781,41 +781,102 @@ function openAdminPanel(){
 function adminDo(action){
   const msg=document.getElementById('adminMsg');
   const ulist=document.getElementById('adminUserList');
-  msg.innerHTML='<span style="color:#888">Working...</span>';
-  ulist.innerHTML='';
-  if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Firebase not ready — open admin from in-game only</span>';return;}
+  if(!msg)return;
+  msg.innerHTML='<span style="color:#888">⏳ Working...</span>';
+  if(ulist) ulist.innerHTML='';
+
   if(action==='wipe'){
-    if(!confirm('Wipe ALL user data? Cannot be undone!'))return;
-    Promise.all(['leaderboard','saves','trades','traderooms','notifications','tradenotifs'].map(r=>db.ref(r).remove()))
-      .then(()=>msg.innerHTML='<span style="color:#10b981">✅ All users wiped</span>')
-      .catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
-  } else if(action==='coins'){
-    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
-    msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins!</span>';
-  } else if(action==='allcards'){
-    PACKS.forEach(p=>p.cards.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()})));
-    save();renderInv();renderStats();
-    msg.innerHTML='<span style="color:#a855f7">🃏 All cards added ('+G.inv.length+' total)</span>';
-  } else if(action==='cosmic'){
-    const c=PACKS.flatMap(p=>p.cards).find(c=>c.rarity==='cosmic');
-    if(c){G.inv.push({...c,id:Date.now()});save();renderInv();renderStats();
-      msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic unlocked!</span>';}
-    else msg.innerHTML='<span style="color:#ef4444">No cosmic found</span>';
-  } else if(action==='users'){
+    if(!confirm('WIPE ALL USERS permanently?'))return;
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
+    Promise.all([
+      db.ref('leaderboard').remove(),
+      db.ref('saves').remove(),
+      db.ref('trades').remove(),
+      db.ref('traderooms').remove(),
+      db.ref('notifications').remove(),
+      db.ref('tradenotifs').remove()
+    ]).then(()=>{
+      msg.innerHTML='<span style="color:#10b981">✅ All users wiped!</span>';
+    }).catch(e=>{
+      msg.innerHTML='<span style="color:#ef4444">❌ Error: '+e.message+'</span>';
+    });
+  }
+  else if(action==='coins'){
+    G.coins+=99999;
+    G.totalEarned+=99999;
+    save();
+    if(typeof updateCoins==='function')updateCoins();
+    if(typeof renderStats==='function')renderStats();
+    msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins added! Total: '+G.coins.toLocaleString()+'</span>';
+  }
+  else if(action==='allcards'){
+    if(typeof PACKS==='undefined'){msg.innerHTML='<span style="color:#ef4444">❌ PACKS not loaded yet</span>';return;}
+    let count=0;
+    PACKS.forEach(p=>{
+      (p.cards||[]).forEach(c=>{
+        G.inv.push({...c,id:Date.now()+Math.random()});
+        count++;
+      });
+    });
+    save();
+    if(typeof renderInv==='function')renderInv();
+    if(typeof renderStats==='function')renderStats();
+    msg.innerHTML='<span style="color:#a855f7">🃏 Added '+count+' cards! ('+G.inv.length+' total)</span>';
+  }
+  else if(action==='cosmic'){
+    if(typeof PACKS==='undefined'){msg.innerHTML='<span style="color:#ef4444">❌ PACKS not loaded yet</span>';return;}
+    const cosmic=PACKS.flatMap(p=>p.cards||[]).find(c=>c.rarity==='cosmic');
+    if(cosmic){
+      G.inv.push({...cosmic,id:Date.now()});
+      save();
+      if(typeof renderInv==='function')renderInv();
+      if(typeof renderStats==='function')renderStats();
+      msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to your inventory!</span>';
+    } else {
+      msg.innerHTML='<span style="color:#ef4444">❌ No cosmic card found in packs</span>';
+    }
+  }
+  else if(action==='reset'){
+    if(!confirm('Reset YOUR account to fresh start?'))return;
+    const uname=G.username;const ph=G.passHash;
+    G={username:uname,passHash:ph,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},packCooldowns:{},stagedCards:[],lastDaily:null,
+      auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();
+    if(typeof renderAll==='function')renderAll();
+    msg.innerHTML='<span style="color:#10b981">✅ Account reset to fresh start!</span>';
+  }
+  else if(action==='users'){
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
     db.ref('leaderboard').once('value').then(snap=>{
       const data=snap.val();
-      if(!data){ulist.innerHTML='<p style="color:#888">No users</p>';msg.innerHTML='';return;}
+      if(!data||!Object.keys(data).length){
+        msg.innerHTML='<span style="color:#888">No users yet</span>';
+        return;
+      }
       const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
-      msg.innerHTML='<span style="color:#60a5fa">'+users.length+' players</span>';
+      msg.innerHTML='<span style="color:#60a5fa">'+users.length+' players online</span>';
+      if(!ulist)return;
       ulist.innerHTML=users.map(u=>`
-        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #1a1a2e">
-          <div style="flex:1"><b>${u.name||'?'}</b> <span style="color:#888">💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0}</span></div>
-          <buttononclick="adminDeleteUser(this.dataset.u)" data-u="${(u.name||'').replace(/[.#$[\]]/g,'_')}".replace(/'/g,''')}')" 
-            style="background:#7f1d1d;color:#fff;border:none;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.7rem">🗑️</button>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1a2e">
+          <div style="flex:1">
+            <b style="color:#eee">${u.name||'?'}</b>
+            <span style="color:#888;font-size:.72rem"> 💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0} · Mythics:${u.mythics||0}${u.gods?' · 👁'+u.gods:''}</span>
+          </div>
+          <button data-user="${(u.name||'').replace(/"/g,'')}" onclick="adminDeleteUser(this.dataset.user)"
+            style="background:#7f1d1d;color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;flex-shrink:0">🗑️</button>
         </div>`).join('');
-    }).catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+    }).catch(e=>{
+      msg.innerHTML='<span style="color:#ef4444">❌ Firebase error: '+e.message+'</span>';
+    });
+  }
+  else if(action==='troll'){
+    document.getElementById('adminOverlay').style.display='none';
+    document.getElementById('trollOverlay').style.display='flex';
   }
 }
+
 
 function adminDeleteUser(name){
   if(!name||!confirm('Delete "'+name+'"?'))return;
@@ -2176,7 +2237,9 @@ init();
       <button onclick="adminDo('coins')" style="background:#064e3b;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💰 Give 99999 Coins</button>
       <button onclick="adminDo('allcards')" style="background:#312e81;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🃏 Get All Cards</button>
       <button onclick="adminDo('cosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
-      <button onclick="adminDo('users')" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem;grid-column:1/-1">👥 View / Delete Users</button>
+      <button onclick="adminDo('reset')" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🔄 Reset My Account</button>
+      <button onclick="adminDo('users')" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">👥 View / Delete Users</button>
+      <button onclick="adminDo('troll')" style="background:#78350f;color:#fbbf24;border:1px solid #f59e0b;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem;grid-column:1/-1">💀 Troll Panel</button>
     </div>
     <div id="adminMsg" style="font-size:.8rem;color:#aaa;min-height:16px;margin-bottom:8px;text-align:center"></div>
     <div id="adminUserList" style="max-height:180px;overflow-y:auto;font-size:.75rem"></div>
@@ -2184,5 +2247,73 @@ init();
       style="width:100%;margin-top:12px;background:#1a1a2e;border:1px solid #333;color:#888;border-radius:8px;padding:8px;cursor:pointer">Close</button>
   </div>
 </div>
+
+<!-- TROLL PANEL -->
+<div id="trollOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:900;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#111;border:2px solid #f59e0b;border-radius:16px;padding:24px;max-width:420px;width:100%">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2rem">💀</div>
+      <h2 style="color:#f59e0b;font-size:1.1rem">Troll Panel</h2>
+      <p style="color:#555;font-size:.72rem">For entertainment purposes only</p>
+    </div>
+    <div style="display:grid;gap:8px;margin-bottom:12px">
+      <button onclick="trollDo('fakeban')" style="background:#1a1a1a;color:#ef4444;border:1px solid #7f1d1d;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">🔨 Fake Ban Someone</button>
+      <button onclick="trollDo('fakeerror')" style="background:#1a1a1a;color:#f59e0b;border:1px solid #78350f;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">⚠️ Send Fake System Error</button>
+      <button onclick="trollDo('fakecosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #0e4a8a;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">✦ Fake Cosmic Announce</button>
+      <button onclick="trollDo('wipeself')" style="background:#1a1a1a;color:#a855f7;border:1px solid #4c1d95;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">👻 Tell Someone Their Account Was Deleted</button>
+      <button onclick="trollDo('givenothing')" style="background:#1a1a1a;color:#888;border:1px solid #374151;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">💰 "Send" 99999 Coins to Someone (Fake)</button>
+    </div>
+    <div id="trollTarget" style="margin-bottom:8px">
+      <input type="text" id="trollUsername" placeholder="Target username..." style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:7px;color:#eee;font-size:.85rem"/>
+    </div>
+    <div id="trollMsg" style="font-size:.8rem;color:#aaa;min-height:16px;text-align:center;margin-bottom:8px"></div>
+    <button onclick="document.getElementById('trollOverlay').style.display='none';document.getElementById('adminOverlay').style.display='flex';"
+      style="width:100%;background:#1a1a2e;border:1px solid #333;color:#888;border-radius:8px;padding:8px;cursor:pointer">← Back to Admin</button>
+  </div>
+</div>
+
+<script>
+function trollDo(action){
+  const target=(document.getElementById('trollUsername').value||'').trim();
+  const msg=document.getElementById('trollMsg');
+  if(!target){msg.innerHTML='<span style="color:#ef4444">Enter a username first</span>';return;}
+  const safeKey=target.replace(/[.#$\[\]]/g,'_');
+  if(action==='fakeban'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'🔨 Your account has been flagged for suspicious activity. You may be banned within 24 hours. Appeal at card.io/support',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#10b981">✅ Fake ban notice sent to '+target+'</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error sending</span>');
+  }
+  else if(action==='fakeerror'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'⚠️ SYSTEM ERROR: Your save data may be corrupted. Please re-open a pack to verify your account integrity.',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#10b981">✅ Fake error sent to '+target+'</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='fakecosmic'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'✦ BREAKING: Someone just pulled THE COSMIC card! The leaderboard has been shaken. Check your inventory...',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#00e5ff">✅ Fake cosmic announcement sent</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='wipeself'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'🗑️ NOTICE: Your account "'+target+'" has been scheduled for deletion due to inactivity. Log in within 1 hour to cancel.',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#a855f7">✅ Fake deletion notice sent</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='givenothing'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'💰 GIFT: The admin has sent you 99,999 coins as a special reward! Check your balance... (just kidding lol)',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#f5c518">✅ Fake coins sent to '+target+' 😂</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+}
+</script>
 </body>
 </html>
