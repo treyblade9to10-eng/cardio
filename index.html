@@ -810,31 +810,36 @@ function adminDo(action){
     msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins added! Total: '+G.coins.toLocaleString()+'</span>';
   }
   else if(action==='allcards'){
-    if(typeof PACKS==='undefined'){msg.innerHTML='<span style="color:#ef4444">❌ PACKS not loaded yet</span>';return;}
+    if(!G.inv)G.inv=[];
     let count=0;
-    PACKS.forEach(p=>{
-      (p.cards||[]).forEach(c=>{
-        G.inv.push({...c,id:Date.now()+Math.random()});
-        count++;
+    try{
+      PACKS.forEach(p=>{
+        (p.cards||[]).forEach(c=>{
+          G.inv.push({...c,id:Date.now()+Math.random()+count});
+          count++;
+        });
       });
-    });
-    save();
-    if(typeof renderInv==='function')renderInv();
-    if(typeof renderStats==='function')renderStats();
-    msg.innerHTML='<span style="color:#a855f7">🃏 Added '+count+' cards! ('+G.inv.length+' total)</span>';
+      save();renderInv();renderStats();
+      msg.innerHTML='<span style="color:#a855f7">🃏 Added '+count+' cards! Total: '+G.inv.length+'</span>';
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';}
   }
   else if(action==='cosmic'){
-    if(typeof PACKS==='undefined'){msg.innerHTML='<span style="color:#ef4444">❌ PACKS not loaded yet</span>';return;}
-    const cosmic=PACKS.flatMap(p=>p.cards||[]).find(c=>c.rarity==='cosmic');
-    if(cosmic){
-      G.inv.push({...cosmic,id:Date.now()});
-      save();
-      if(typeof renderInv==='function')renderInv();
-      if(typeof renderStats==='function')renderStats();
-      msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to your inventory!</span>';
-    } else {
-      msg.innerHTML='<span style="color:#ef4444">❌ No cosmic card found in packs</span>';
-    }
+    try{
+      if(!G.inv)G.inv=[];
+      const allCards=PACKS.flatMap(p=>p.cards||[]);
+      const cosmic=allCards.find(c=>c.rarity==='cosmic');
+      if(cosmic){
+        G.inv.push({...cosmic,id:Date.now()});
+        save();renderInv();renderStats();
+        msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic added! Check inventory.</span>';
+      } else {
+        // If no cosmic rarity, just add the most expensive card
+        const best=allCards.sort((a,b)=>b.val-a.val)[0];
+        G.inv.push({...best,id:Date.now()});
+        save();renderInv();
+        msg.innerHTML='<span style="color:#00e5ff">Added: '+best.name+'</span>';
+      }
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';}
   }
   else if(action==='reset'){
     if(!confirm('Reset YOUR account to fresh start?'))return;
@@ -846,6 +851,26 @@ function adminDo(action){
     save();
     if(typeof renderAll==='function')renderAll();
     msg.innerHTML='<span style="color:#10b981">✅ Account reset to fresh start!</span>';
+  }
+  else if(action==='sendcoins'){
+    const target=prompt('Send coins to which username?');
+    if(!target)return;
+    const amount=parseInt(prompt('How many coins?')||'0');
+    if(!amount||amount<1){msg.innerHTML='<span style="color:#ef4444">❌ Invalid amount</span>';return;}
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
+    const safeKey=target.replace(/[.#$\[\]]/g,'_');
+    db.ref('saves/'+safeKey).once('value').then(snap=>{
+      const save_data=snap.val();
+      if(!save_data){msg.innerHTML='<span style="color:#ef4444">❌ User "'+target+'" not found</span>';return;}
+      const newCoins=(save_data.coins||0)+amount;
+      db.ref('saves/'+safeKey+'/coins').set(newCoins).then(()=>{
+        // Also update leaderboard
+        db.ref('leaderboard/'+safeKey+'/coins').set(newCoins);
+        // Send notification
+        db.ref('notifications/'+safeKey).push({msg:'💰 Admin sent you '+amount.toLocaleString()+' coins! Check your balance.',time:Date.now()});
+        msg.innerHTML='<span style="color:#10b981">✅ Sent '+amount.toLocaleString()+' coins to '+target+'! (new total: '+newCoins.toLocaleString()+')</span>';
+      });
+    }).catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
   }
   else if(action==='users'){
     if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
@@ -1428,7 +1453,8 @@ function showPackModal(packName,cards,hasCosmic=false){
   }).join('');
   
   const pm=document.getElementById('packModal');
-  pm.classList.remove('hidden');pm.style.display='flex';
+  const pmEl=document.getElementById('packModal');
+  if(pmEl){pmEl.classList.remove('hidden');pmEl.style.cssText='display:flex!important';}
   
   // Cosmic reveal sequence
   if(hasCosmic){
@@ -1480,8 +1506,8 @@ function closeModal(){
   G.inv.push(...G.pendingPulled);
   G.pendingPulled=[];
   save();checkAchievements();renderInv();renderStats();
-  const pm2=document.getElementById('packModal');
-  pm2.classList.add('hidden');pm2.style.display='none';
+  const pm2El=document.getElementById('packModal');
+  if(pm2El){pm2El.classList.add('hidden');pm2El.style.display='none';}
   notify(`🃏 ${count} cards added to inventory!`);
 }
 
@@ -1490,8 +1516,8 @@ function sellAllPulled(){
   G.coins+=earned;G.totalEarned+=earned;
   G.pendingPulled=[];
   save();updateCoins();renderStats();
-  const pm2=document.getElementById('packModal');
-  pm2.classList.add('hidden');pm2.style.display='none';
+  const pm2El=document.getElementById('packModal');
+  if(pm2El){pm2El.classList.add('hidden');pm2El.style.display='none';}
   notify(`💰 Sold all for ${earned} coins!`);
 }
 
@@ -2239,6 +2265,7 @@ init();
       <button onclick="adminDo('cosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
       <button onclick="adminDo('reset')" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🔄 Reset My Account</button>
       <button onclick="adminDo('users')" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">👥 View / Delete Users</button>
+      <button onclick="adminDo('sendcoins')" style="background:#064e3b;color:#10b981;border:1px solid #065f46;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💸 Send Real Coins</button>
       <button onclick="adminDo('troll')" style="background:#78350f;color:#fbbf24;border:1px solid #f59e0b;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem;grid-column:1/-1">💀 Troll Panel</button>
     </div>
     <div id="adminMsg" style="font-size:.8rem;color:#aaa;min-height:16px;margin-bottom:8px;text-align:center"></div>
