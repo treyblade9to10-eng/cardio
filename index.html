@@ -159,7 +159,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
     <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
       <span style="color:#555;font-size:.75rem">or</span>
@@ -489,7 +489,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
     <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
-    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
       <span style="color:#555;font-size:.75rem">or</span>
@@ -1472,7 +1472,10 @@ function setUsername(){
   const name=document.getElementById('usernameInput').value.trim();
   const pass=document.getElementById('passwordInput').value;
   if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
-  if(!pass||pass.length<3){notify('❌ Password must be at least 3 characters');return;}
+  if(!pass||pass.length<1){notify('❌ Enter a password');return;}
+  const btn=document.getElementById('loginBtn');
+  if(btn){btn.textContent='⏳ Logging in...';btn.disabled=true;}
+  const resetBtn=()=>{if(btn){btn.textContent='🚀 Login / Create Account';btn.disabled=false;}}
   const safeKey=name.replace(/[.#$\[\]]/g,'_');
   const passHash=hashPass(pass);
   
