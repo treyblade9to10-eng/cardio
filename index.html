@@ -810,36 +810,43 @@ function adminDo(action){
     msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins added! Total: '+G.coins.toLocaleString()+'</span>';
   }
   else if(action==='allcards'){
-    if(!G.inv)G.inv=[];
-    let count=0;
     try{
-      PACKS.forEach(p=>{
-        (p.cards||[]).forEach(c=>{
-          G.inv.push({...c,id:Date.now()+Math.random()+count});
-          count++;
+      if(!Array.isArray(G.inv))G.inv=[];
+      const allPacks=window.PACKS||PACKS;
+      let added=0;
+      allPacks.forEach(function(p){
+        (p.cards||[]).forEach(function(c){
+          G.inv.push(Object.assign({},c,{id:Date.now()+Math.random()+added}));
+          added++;
         });
       });
-      save();renderInv();renderStats();
-      msg.innerHTML='<span style="color:#a855f7">🃏 Added '+count+' cards! Total: '+G.inv.length+'</span>';
-    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';}
+      save();
+      if(window.renderInv)renderInv();
+      if(window.renderStats)renderStats();
+      if(window.updateCoins)updateCoins();
+      msg.innerHTML='<span style="color:#a855f7">🃏 Added '+added+' cards! Inventory: '+G.inv.length+'</span>';
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ allcards error: '+e.message+'</span>';}
   }
   else if(action==='cosmic'){
     try{
-      if(!G.inv)G.inv=[];
-      const allCards=PACKS.flatMap(p=>p.cards||[]);
-      const cosmic=allCards.find(c=>c.rarity==='cosmic');
-      if(cosmic){
-        G.inv.push({...cosmic,id:Date.now()});
-        save();renderInv();renderStats();
-        msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic added! Check inventory.</span>';
+      if(!Array.isArray(G.inv))G.inv=[];
+      const allPacks=window.PACKS||PACKS;
+      let cosmicCard=null;
+      allPacks.forEach(function(p){
+        (p.cards||[]).forEach(function(c){
+          if(c.rarity==='cosmic')cosmicCard=c;
+        });
+      });
+      if(cosmicCard){
+        G.inv.push(Object.assign({},cosmicCard,{id:Date.now()}));
+        save();
+        if(window.renderInv)renderInv();
+        if(window.renderStats)renderStats();
+        msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to your inventory!</span>';
       } else {
-        // If no cosmic rarity, just add the most expensive card
-        const best=allCards.sort((a,b)=>b.val-a.val)[0];
-        G.inv.push({...best,id:Date.now()});
-        save();renderInv();
-        msg.innerHTML='<span style="color:#00e5ff">Added: '+best.name+'</span>';
+        msg.innerHTML='<span style="color:#ef4444">❌ No cosmic card exists in any pack</span>';
       }
-    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';}
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ cosmic error: '+e.message+'</span>';}
   }
   else if(action==='reset'){
     if(!confirm('Reset YOUR account to fresh start?'))return;
@@ -1452,9 +1459,13 @@ function showPackModal(packName,cards,hasCosmic=false){
     </div>`;
   }).join('');
   
-  const pm=document.getElementById('packModal');
   const pmEl=document.getElementById('packModal');
-  if(pmEl){pmEl.classList.remove('hidden');pmEl.style.cssText='display:flex!important';}
+  if(pmEl){
+    pmEl.classList.remove('hidden');
+    pmEl.style.display='flex';
+    pmEl.style.position='fixed';
+    pmEl.style.zIndex='999';
+  }
   
   // Cosmic reveal sequence
   if(hasCosmic){
