@@ -203,15 +203,15 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     
     <!-- Trade sides -->
     <div class="trade-room-sides">
-      <div class="trade-room-col">
-        <h3 id="mySideLabel">Your Cards</h3>
+      <div class="trade-room-col my-side">
+        <h3 id="mySideLabel">👤 YOU</h3>
         <div class="trade-room-cards" id="myTradeCards"></div>
         <div style="margin-top:8px;font-size:.75rem;color:#888">Click your inventory to add:</div>
         <div id="myTRInv" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;margin-top:6px"></div>
       </div>
       <div style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--accent2)">⇌</div>
-      <div class="trade-room-col">
-        <h3 id="theirSideLabel">Their Cards</h3>
+      <div class="trade-room-col their-side">
+        <h3 id="theirSideLabel">👥 THEM</h3>
         <div class="trade-room-cards" id="theirTradeCards"><p style="color:#555;font-size:.75rem">Waiting for them to add cards...</p></div>
       </div>
     </div>
@@ -226,9 +226,9 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 
     <!-- Final confirm (shown when both ready) -->
     <div id="finalConfirm" style="display:none">
-      <div style="text-align:center;color:var(--gold);font-weight:700;margin-bottom:10px">⚡ Both players ready! Confirm trade?</div>
+      <div class="trade-countdown" id="tradeCountdown">⚡ Both ready! Confirming in 3...</div>
       <div class="final-btns">
-        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT</button>
+        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT TRADE</button>
         <button class="final-btn cancel" onclick="cancelTradeRoom()">❌ CANCEL</button>
       </div>
     </div>
@@ -272,7 +272,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   <button class="nb active" id="nav-shop" onclick="show('shop')">🏪 Shop</button>
   <button class="nb" id="nav-inventory" onclick="show('inventory')">🎒 Inventory</button>
   <button class="nb" id="nav-auction" onclick="show('auction')">⏱ Auction</button>
-  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade</button>
+  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade<span id="tradeNavDot" class="trade-notif-dot" style="display:none"></span></button>
   <button class="nb" id="nav-fuse" onclick="show('fuse')">⚗️ Fuse</button>
   <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
   <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
@@ -301,19 +301,39 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
   </div>
   <div class="section-title">🗓 Daily Challenges</div>
   <div id="dailyChallenges"></div>
-  <div class="section-title" style="margin-top:20px">🏪 Card Packs</div>
+  <div class="section-divider"></div>
+  <div class="section-title">🏪 Card Packs</div>
   <div class="grid grid-3" id="packGrid"></div>
+  <div class="section-divider"></div>
+  <div class="section-title" style="font-size:.95rem">⚡ Recent Activity</div>
+  <div class="recent-activity-box" id="recentActivity"><p class="empty" style="padding:6px">No activity yet — open a pack!</p></div>
 </div>
 
 <!-- INVENTORY -->
 <div class="page" id="page-inventory">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
     <div class="section-title" style="margin:0">🎒 Your Collection</div>
-    <button class="btn-sm" onclick="sortInv('val')">Sort by Value</button>
-    <button class="btn-sm" onclick="sortInv('rarity')">Sort by Rarity</button>
-    <button class="btn-sm" onclick="sortInv('type')">Sort by Type</button>
-    <button class="btn btn-red" style="margin-left:auto;padding:7px 14px;font-size:.82rem" onclick="sellAll('common')">Sell Commons</button>
-    <button class="btn btn-red" style="padding:7px 14px;font-size:.82rem" onclick="sellAll('legendary')">Sell Legendaries</button>
+    <button class="btn-sm" onclick="sortInv('val')">⇅ Value</button>
+    <button class="btn-sm" onclick="sortInv('rarity')">⇅ Rarity</button>
+    <button class="btn-sm" onclick="sortInv('type')">⇅ Type</button>
+  </div>
+  <div class="bulk-sell-row">
+    <button class="bulk-sell-btn" onclick="bulkSell('common')">🗑️ Sell Commons</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('rare')">🗑️ Sell Rares</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('epic')">🗑️ Sell Epics</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('legendary')">🗑️ Sell Legendaries</button>
+    <button class="bulk-sell-btn" style="color:#f5c518;border-color:#f5c518" onclick="bulkSell('all')">💰 Sell All</button>
+  </div>
+  <div class="inv-filter-bar">
+    <button class="inv-filter-btn active" id="invFilter-all" onclick="setInvFilter('all')">All</button>
+    <button class="inv-filter-btn" id="invFilter-common" onclick="setInvFilter('common')">Common</button>
+    <button class="inv-filter-btn" id="invFilter-rare" onclick="setInvFilter('rare')">Rare</button>
+    <button class="inv-filter-btn" id="invFilter-epic" onclick="setInvFilter('epic')">Epic</button>
+    <button class="inv-filter-btn" id="invFilter-legendary" onclick="setInvFilter('legendary')">Legendary</button>
+    <button class="inv-filter-btn" id="invFilter-mythic" onclick="setInvFilter('mythic')">Mythic</button>
+    <button class="inv-filter-btn" id="invFilter-god" onclick="setInvFilter('god')">God</button>
+    <button class="inv-filter-btn" id="invFilter-cosmic" onclick="setInvFilter('cosmic')">Cosmic</button>
+    <input type="text" class="inv-search" id="invSearch" placeholder="🔍 Search by name..." oninput="renderInv()"/>
   </div>
   <div class="grid grid-2" id="invGrid"></div>
 </div>
@@ -701,7 +721,7 @@ let G = {
   fusions:0, trades:0, auctionWins:0, dailiesCompleted:0, sellCount:0,
   packsOpenedByType:{}, stagedCards:[], lastDaily:null,
   auctions:[], dailies:[], achDone:[], pendingPulled:[],
-  packCooldowns:{}
+  packCooldowns:{}, recentActivity:[]
 };
 let packQuantities = {};
 // ── FIREBASE SETUP ───────────────────────────────────────────────────────────
@@ -1295,7 +1315,26 @@ function startGame(){
 function renderAll(){
   updateCoins();renderStats();renderPacks();renderInv();
   renderAuctions();renderTrade();renderAchievements();renderLB('coins');
-  renderDailyChallenges();
+  renderDailyChallenges();renderRecentActivity();
+}
+
+// ── RECENT ACTIVITY ─────────────────────────────────────────────────────────
+function addActivity(text){
+  if(!G.recentActivity) G.recentActivity=[];
+  G.recentActivity.unshift({text,time:Date.now()});
+  if(G.recentActivity.length>20) G.recentActivity=G.recentActivity.slice(0,20);
+  renderRecentActivity();
+}
+
+function renderRecentActivity(){
+  const el=document.getElementById('recentActivity');
+  if(!el)return;
+  if(!G.recentActivity||!G.recentActivity.length){el.innerHTML='<p class="empty" style="padding:6px">No activity yet — open a pack!</p>';return;}
+  el.innerHTML=G.recentActivity.slice(0,5).map(a=>{
+    const ago=Math.floor((Date.now()-a.time)/60000);
+    const agoStr=ago<1?'just now':ago<60?ago+'m ago':Math.floor(ago/60)+'h ago';
+    return '<div class="recent-item"><span class="recent-icon">▸</span><span style="flex:1">'+a.text+'</span><span style="color:var(--muted);font-size:.7rem;flex-shrink:0;margin-left:8px">'+agoStr+'</span></div>';
+  }).join('');
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
@@ -1535,10 +1574,40 @@ function sellAllPulled(){
 }
 
 // ── INVENTORY ─────────────────────────────────────────────────────────────────
-function renderInv(sortBy='val'){
+let invFilter='all', invSort='val';
+
+function setInvFilter(f,el){
+  invFilter=f;
+  document.querySelectorAll('.inv-filter').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderInv();
+}
+
+function sortInv(by){invSort=by;renderInv();}
+
+function sellByRarity(rarity){
+  const toSell=rarity==='all'?[...G.inv]:G.inv.filter(c=>c.rarity===rarity);
+  if(!toSell.length){notify('No '+rarity+' cards to sell');return;}
+  const earned=toSell.reduce((a,c)=>a+c.val,0);
+  if(!confirm('Sell '+toSell.length+' card(s) for '+earned.toLocaleString()+' coins?'))return;
+  G.coins+=earned;G.totalEarned+=earned;G.sellCount=(G.sellCount||0)+toSell.length;
+  if(rarity==='all')G.inv=[];
+  else G.inv=G.inv.filter(c=>c.rarity!==rarity);
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();checkAchievements();
+  notify('💰 Sold '+toSell.length+' cards for '+earned.toLocaleString()+' coins!');
+}
+
+function renderInv(){
   const grid=document.getElementById('invGrid');
   if(!G.inv.length){grid.innerHTML='<p class="empty">No cards yet — open some packs!</p>';return;}
+  const search=(document.getElementById('invSearch')||{}).value||'';
   let sorted=[...G.inv];
+  // Filter
+  if(invFilter&&invFilter!=='all') sorted=sorted.filter(c=>c.rarity===invFilter);
+  // Search
+  if(search) sorted=sorted.filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  // Sort
+  const sortBy=invSort||'val';
   if(sortBy==='val') sorted.sort((a,b)=>b.val-a.val);
   if(sortBy==='rarity') sorted.sort((a,b)=>RARITY_ORDER.indexOf(b.rarity)-RARITY_ORDER.indexOf(a.rarity));
   if(sortBy==='type') sorted.sort((a,b)=>a.type.localeCompare(b.type));
