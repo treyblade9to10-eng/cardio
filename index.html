@@ -158,7 +158,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
-    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password (optional)..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
     <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
@@ -488,7 +488,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
     <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
-    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <input type="text" id="passwordInput" autocomplete="off" placeholder="Password (optional)..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
     <button class="btn" id="loginBtn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
@@ -1469,57 +1469,50 @@ function hashPass(s){
 }
 
 function setUsername(){
-  const name=document.getElementById('usernameInput').value.trim();
-  const passEl=document.getElementById('passwordInput');const pass=passEl?passEl.value.trim():'';
-  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
-  if(!pass){notify('❌ Enter a password');return;}
+  const name=(document.getElementById('usernameInput').value||'').trim();
+  const pass=(document.getElementById('passwordInput').value||'').trim();
+  if(!name||name.length<2){notify('❌ Enter a username (2+ characters)');return;}
   const btn=document.getElementById('loginBtn');
   if(btn){btn.textContent='⏳ Logging in...';btn.disabled=true;}
-  const resetBtn=()=>{if(btn){btn.textContent='🚀 Login / Create Account';btn.disabled=false;}}
-  const safeKey=name.replace(/[.#$\[\]]/g,'_');
-  const passHash=hashPass(pass);
   
-  db.ref('saves/'+safeKey).once('value').then(snap=>{
-    const cloudSave=snap.val();
-    if(cloudSave&&cloudSave.username===name){
-      // Existing account — verify password
-      if(cloudSave.passHash&&cloudSave.passHash!==passHash){
-        notify('❌ Wrong password!');
-        return;
+  // Try Firebase, fall back instantly if it fails
+  function enterGame(savedData){
+    if(savedData&&savedData.username===name){
+      // Check password if account has one
+      if(savedData.passHash&&pass){
+        const ph=hashPass(pass);
+        if(savedData.passHash!==ph){
+          notify('❌ Wrong password!');
+          if(btn){btn.textContent='🚀 Login / Create Account';btn.disabled=false;}
+          return;
+        }
       }
-      // Correct password — restore save
-      G=cloudSave;
-      G.username=name;
-      G.passHash=passHash;
-      save();
+      G=savedData;G.username=name;
+      if(pass)G.passHash=hashPass(pass);
       notify('👋 Welcome back, '+name+'!');
-      closeLoginModal();
-      startGame();
     } else {
-      // New account - fresh state with starting coins
-      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-        packsOpenedByType:{},stagedCards:[],lastDaily:null,
-        auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
-      save();
-      notify('🎉 Account created, '+name+'! You start with 750 coins 💰');
-      closeLoginModal();
-      startGame();
-    }
-  }).catch(()=>{
-    // Firebase offline - use local cache if username matches
-    loadFromLocal();
-    if(G.username===name){
-      notify('⚠️ Offline mode - using local save');
-    } else {
-      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
-        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
-        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
+      // New account
+      G={username:name,passHash:pass?hashPass(pass):'',coins:750,inv:[],packsOpened:0,
+        totalEarned:0,totalSpent:0,fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,
+        sellCount:0,packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],
+        dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+      notify('🎉 Welcome, '+name+'! You start with 750 coins');
     }
     save();
-    const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
+    const m=document.getElementById('usernameModal');
+    if(m){m.classList.add('hidden');m.style.display='none';}
     startGame();
-  });
+  }
+  
+  if(db){
+    const safeKey=name.replace(/[.#$\[\]]/g,'_');
+    const t=setTimeout(()=>enterGame(null),4000); // 4s timeout fallback
+    db.ref('saves/'+safeKey).once('value')
+      .then(s=>{clearTimeout(t);enterGame(s.val());})
+      .catch(()=>{clearTimeout(t);enterGame(null);});
+  } else {
+    enterGame(null);
+  }
 }
 
 function startGame(){
