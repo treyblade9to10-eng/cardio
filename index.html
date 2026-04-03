@@ -145,7 +145,6 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -475,7 +474,6 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 </head>
 <body>
 
@@ -1038,8 +1036,14 @@ const firebaseConfig = {
   authDomain: "cardio-game-3713.firebaseapp.com",
   projectId: "cardio-game-3713"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+let db;
+try {
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+} catch(e) {
+  // App already initialized or error - get existing instance
+  try { db = firebase.database(); } catch(e2) { console.warn('Firebase error:', e2); }
+}
 
 function saveLB(){
   if(!G.username)return;
@@ -1318,7 +1322,8 @@ function clearTM(){tmSending=[];tmReceiving=[];renderTMInv();renderTMAI();render
 function signInWithGoogle(){
   // Initialize auth if not done
   try {
-    const auth = firebase.auth();
+    const auth = firebase.auth ? firebase.auth() : null;
+    if(!auth){notify('❌ Google sign-in not available');return;}
     const provider = new firebase.auth.GoogleAuthProvider();
     auth.signInWithPopup(provider).then(result=>{
       const user = result.user;
