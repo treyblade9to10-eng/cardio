@@ -161,6 +161,12 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
     <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
     <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <div style="margin-top:16px;border-top:1px solid #1a1a2e;padding-top:12px">
+      <input type="text" id="adminCodeInput" placeholder="· · ·" maxlength="10" 
+        style="width:100%;background:#0a0a0f;border:1px solid #1a1a2e;border-radius:6px;padding:6px;color:#333;font-size:.75rem;text-align:center;letter-spacing:.2em" 
+        oninput="if(this.value.trim()==='3713'){this.value='';openAdminPanel();}" 
+        autocomplete="off"/>
+    </div>
     <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
       <div style="flex:1;height:1px;background:#333"></div>
       <span style="color:#555;font-size:.75rem">or</span>
@@ -276,7 +282,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </nav>
 
 <!-- Fixed account button - always visible top right -->
-<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:8px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
+<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:48px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
 
 <!-- Account menu (outside nav so it isn't clipped) -->
 <div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
@@ -484,14 +490,14 @@ const PACKS = [
     {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
     {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
     {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
-    {name:'Streetball God',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'The Professor',icon:'⛹️',type:'street',rarity:'god',val:2400},
     {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
   ]},
   {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
    cards:[
     {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
     {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
-    {name:'Deep Sea Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
     {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
     {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
     {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
@@ -730,6 +736,60 @@ const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+function openAdminPanel(){
+  const o=document.getElementById('adminOverlay');
+  if(o){o.style.display='flex';}
+}
+
+function adminDo(action){
+  const msg=document.getElementById('adminMsg');
+  const ulist=document.getElementById('adminUserList');
+  msg.innerHTML='<span style="color:#888">Working...</span>';
+  ulist.innerHTML='';
+  if(action==='wipe'){
+    if(!confirm('Wipe ALL user data? Cannot be undone!'))return;
+    Promise.all(['leaderboard','saves','trades','traderooms','notifications','tradenotifs'].map(r=>db.ref(r).remove()))
+      .then(()=>msg.innerHTML='<span style="color:#10b981">✅ All users wiped</span>')
+      .catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+  } else if(action==='coins'){
+    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
+    msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins!</span>';
+  } else if(action==='allcards'){
+    PACKS.forEach(p=>p.cards.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()})));
+    save();renderInv();renderStats();
+    msg.innerHTML='<span style="color:#a855f7">🃏 All cards added ('+G.inv.length+' total)</span>';
+  } else if(action==='cosmic'){
+    const c=PACKS.flatMap(p=>p.cards).find(c=>c.rarity==='cosmic');
+    if(c){G.inv.push({...c,id:Date.now()});save();renderInv();renderStats();
+      msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic unlocked!</span>';}
+    else msg.innerHTML='<span style="color:#ef4444">No cosmic found</span>';
+  } else if(action==='users'){
+    db.ref('leaderboard').once('value').then(snap=>{
+      const data=snap.val();
+      if(!data){ulist.innerHTML='<p style="color:#888">No users</p>';msg.innerHTML='';return;}
+      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
+      msg.innerHTML='<span style="color:#60a5fa">'+users.length+' players</span>';
+      ulist.innerHTML=users.map(u=>`
+        <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #1a1a2e">
+          <div style="flex:1"><b>${u.name||'?'}</b> <span style="color:#888">💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0}</span></div>
+          <buttononclick="adminDeleteUser(this.dataset.u)" data-u="${(u.name||'').replace(/[.#$[\]]/g,'_')}".replace(/'/g,''')}')" 
+            style="background:#7f1d1d;color:#fff;border:none;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:.7rem">🗑️</button>
+        </div>`).join('');
+    }).catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+  }
+}
+
+function adminDeleteUser(name){
+  if(!name||!confirm('Delete "'+name+'"?'))return;
+  const k=name.replace(/[.#$\[\]]/g,'_');
+  Promise.all([db.ref('leaderboard/'+k).remove(),db.ref('saves/'+k).remove(),
+    db.ref('trades/'+k).remove(),db.ref('notifications/'+k).remove()])
+    .then(()=>{document.getElementById('adminMsg').innerHTML='<span style="color:#10b981">✅ Deleted: '+name+'</span>';adminDo('users');})
+    .catch(e=>document.getElementById('adminMsg').innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+}
+
 function loadFromLocal(){
   try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d.username)Object.assign(G,d);}}catch(e){}
 }
@@ -2030,7 +2090,7 @@ function renderOdds(){
     const rarityGroups={};
     p.cards.forEach(c=>{rarityGroups[c.rarity]=(rarityGroups[c.rarity]||0)+1;});
     
-    const rarityPctLines=Object.entries(rarityGroups).map(([r,count])=>`
+    const rarityPctLines=Object.entries(rarityGroups).sort((a,b)=>{const RO=['cosmic','god','mythic','legendary','epic','rare','common'];return RO.indexOf(a[0])-RO.indexOf(b[0]);}).map(([r,count])=>`
       <span class="rarity-badge ${rColors[r]}" style="position:static;margin-right:4px">${r.toUpperCase()}: ${rarityChances[r]||'?'}</span>`).join('');
     
     return `<div class="odds-pack">
@@ -2043,7 +2103,10 @@ function renderOdds(){
         <div class="odds-pack-collected">${owned}/${totalCards} cards collected</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${rarityPctLines}</div>
-      ${p.cards.map(c=>{
+      ${[...p.cards].sort((a,b)=>{
+        const RO=['cosmic','god','mythic','legendary','epic','rare','common'];
+        return RO.indexOf(a.rarity)-RO.indexOf(b.rarity);
+      }).map(c=>{
         const haveCount=(G.inv.filter(i=>i.name===c.name&&i.type===c.type).length);
         return `<div class="odds-card-row">
           <span style="font-size:1.1rem">${c.icon}</span>
@@ -2060,5 +2123,27 @@ function renderOdds(){
 
 init();
 </script>
+
+<!-- ADMIN PANEL -->
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:800;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#0f0f1a;border:2px solid #f5c518;border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2rem">⚙️</div>
+      <h2 style="color:#f5c518;font-size:1.1rem;margin-bottom:2px">Admin Panel</h2>
+      <p style="color:#555;font-size:.72rem">Code 3713</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button onclick="adminDo('wipe')" style="background:#7f1d1d;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🗑️ Wipe All Users</button>
+      <button onclick="adminDo('coins')" style="background:#064e3b;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💰 Give 99999 Coins</button>
+      <button onclick="adminDo('allcards')" style="background:#312e81;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🃏 Get All Cards</button>
+      <button onclick="adminDo('cosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
+      <button onclick="adminDo('users')" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem;grid-column:1/-1">👥 View / Delete Users</button>
+    </div>
+    <div id="adminMsg" style="font-size:.8rem;color:#aaa;min-height:16px;margin-bottom:8px;text-align:center"></div>
+    <div id="adminUserList" style="max-height:180px;overflow-y:auto;font-size:.75rem"></div>
+    <button onclick="document.getElementById('adminOverlay').style.display='none'" 
+      style="width:100%;margin-top:12px;background:#1a1a2e;border:1px solid #333;color:#888;border-radius:8px;padding:8px;cursor:pointer">Close</button>
+  </div>
+</div>
 </body>
 </html>
