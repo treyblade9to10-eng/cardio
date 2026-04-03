@@ -768,6 +768,851 @@ function closeAdmin(){
 function adminAction(action){
   const result=document.getElementById('adminResult');
   const userList=document.getElementById('adminUserList');
+  result.innerHTML='<span style="color:#888">Working...</span>';
+  
+  if(action==='wipeAll'){
+    if(!confirm('WIPE ALL USERS? Cannot be undone!'))return;
+    Promise.all([
+      db.ref('leaderboard').remove(),
+      db.ref('saves').remove(),
+      db.ref('trades').remove(),
+      db.ref('traderooms').remove(),
+      db.ref('notifications').remove(),
+      db.ref('tradenotifs').remove()
+    ]).then(()=>{result.innerHTML='<span style="color:#10b981">✅ All users wiped</span>';userList.innerHTML='';})
+    .catch(e=>{result.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';});
+  }
+  else if(action==='giveCoins'){
+    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
+    result.innerHTML='<span style="color:#f5c518">💰 +99999 coins added!</span>';
+  }
+  else if(action==='allCards'){
+    PACKS.forEach(pack=>{pack.cards.forEach(c=>{G.inv.push({...c,id:Date.now()+Math.random()});});});
+    save();renderInv();renderStats();
+    result.innerHTML='<span style="color:#a855f7">🃏 All '+G.inv.length+' cards added!</span>';
+  }
+  else if(action==='viewUsers'){
+    result.innerHTML='<span style="color:#888">Loading...</span>';
+    db.ref('leaderboard').once('value').then(snap=>{
+      const data=snap.val();
+      if(!data){userList.innerHTML='<p style="color:#888">No users yet</p>';result.innerHTML='';return;}
+      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
+      result.innerHTML='<span style="color:#60a5fa">'+users.length+' players found</span>';
+      userList.innerHTML='<div style="font-size:.72rem;color:#f5c518;margin-bottom:6px;border-bottom:1px solid #333;padding-bottom:4px">All Players</div>'+
+        users.map(u=>`<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #1a1a2e">
+          <div style="flex:1">
+            <div style="font-weight:600">${u.name||'?'}</div>
+            <div style="color:#888;font-size:.68rem">💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0} · Mythics:${u.mythics||0}${u.gods?' · 👁️'+u.gods:''}</div>
+          </div>
+          <button onclick="adminDeleteUser('${(u.name||'').replace(/'/g,'&#39;')}')" style="background:#b00020;color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;flex-shrink:0">🗑️ Delete</button>
+        </div>`).join('');
+    }).catch(e=>{result.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';});
+  }
+  else if(action==='wipeSelf'){
+    if(!confirm('Reset YOUR account to fresh start?'))return;
+    G={...G,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();renderAll();
+    result.innerHTML='<span style="color:#10b981">✅ Your account reset to fresh start</span>';
+  }
+  else if(action==='unlockCosmic'){
+    const cosmic=PACKS.flatMap(p=>p.cards).find(c=>c.rarity==='cosmic');
+    if(cosmic){G.inv.push({...cosmic,id:Date.now()});save();renderInv();renderStats();
+      result.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added!</span>';}
+    else result.innerHTML='<span style="color:#ef4444">❌ No cosmic found in packs</span>';
+  }
+}
+
+function adminDeleteUser(username){
+  if(!username)return;
+  if(!confirm('Delete user "'+username+'"?'))return;
+  const safeKey=username.replace(/[.#$\[\]]/g,'_');
+  Promise.all([
+    db.ref('leaderboard/'+safeKey).remove(),
+    db.ref('saves/'+safeKey).remove(),
+    db.ref('trades/'+safeKey).remove(),
+    db.ref('notifications/'+safeKey).remove(),
+    db.ref('tradenotifs/'+safeKey).remove()
+  ]).then(()=>{
+    const result=document.getElementById('adminResult');
+    result.innerHTML='<span style="color:#10b981">✅ Deleted: '+username+'</span>';
+    adminAction('viewUsers');
+  }).catch(e=>{
+    document.getElementById('adminResult').innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>';
+  });
+}
+
+let isAdmin!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Card.io 🃏</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0f;--card:#1a1a1f;--card2:#242430;--accent:#7c3aed;--accent2:#a855f7;--gold:#f5c518;--green:#10b981;--red:#ef4444;--text:#e2e8f0;--muted:#64748b}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* NAV */
+.navbar{background:#111118;border-bottom:1px solid #2a2a3a;position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 16px;gap:0;overflow-x:auto}
+.nav-logo{color:var(--accent2);font-weight:800;font-size:1.1rem;padding:12px 16px 12px 0;white-space:nowrap}
+.nb{background:none;border:none;color:var(--muted);padding:12px 14px;font-size:.82rem;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;font-weight:600}
+.nb:hover{color:var(--text)}.nb.active{color:var(--accent2);border-bottom-color:var(--accent2)}
+.coins-badge{margin-left:auto;background:#1e1e2e;border:1px solid #333;border-radius:20px;padding:6px 14px;font-size:.85rem;font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0}
+/* PAGES */
+.page{display:none;max-width:1100px;margin:0 auto;padding:20px}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* CARDS */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.grid-2{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card-box{background:var(--card);border-radius:12px;padding:16px;border:1px solid #2a2a3a}
+/* PACK CARDS */
+.pack{background:var(--card);border-radius:14px;padding:18px;border:1px solid #333;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden}
+.pack:hover{transform:translateY(-4px);border-color:var(--accent)}
+.pack-icon{font-size:2.4rem;margin-bottom:8px}
+.pack-name{font-weight:700;font-size:.95rem;margin-bottom:4px}
+.pack-desc{font-size:.75rem;color:var(--muted);margin-bottom:10px}
+.pack-price{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;font-weight:700;cursor:pointer;width:100%;transition:background .15s}
+.pack-price:hover{background:var(--accent2)}
+/* COLLECTION CARDS */
+.ccard{background:var(--card2);border-radius:10px;padding:12px;border:1px solid #333;position:relative;transition:all .15s}
+.ccard:hover{border-color:var(--accent)}
+.ccard-icon{font-size:2rem;margin-bottom:6px;text-align:center}
+.ccard-name{font-weight:700;font-size:.82rem;text-align:center;margin-bottom:3px}
+.ccard-type{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:4px}
+.ccard-val{font-size:.75rem;color:var(--gold);text-align:center;font-weight:600}
+.rarity-badge{position:absolute;top:6px;right:6px;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px}
+.r-common{background:#374151;color:#9ca3af}
+.r-rare{background:#1e3a5f;color:#60a5fa}
+.r-epic{background:#2d1b69;color:#a78bfa}
+.r-legendary{background:#451a03;color:#f59e0b}
+.r-mythic{background:#450a0a;color:#f87171;animation:glow 2s infinite alternate}
+.r-god{background:linear-gradient(135deg,#1a0050,#4a0080);color:#e040fb;animation:godglow 1.5s infinite alternate;font-size:.6rem}
+.r-cosmic{background:linear-gradient(135deg,#000510,#001a4a);color:#00e5ff;animation:cosmicglow 1s infinite alternate;font-size:.6rem}
+@keyframes godglow{from{box-shadow:0 0 6px #e040fb}to{box-shadow:0 0 16px #e040fb,0 0 30px #7b1fa2}}
+@keyframes cosmicglow{from{box-shadow:0 0 8px #00e5ff}to{box-shadow:0 0 20px #00e5ff,0 0 40px #0288d1,0 0 60px #01579b}}
+@keyframes glow{from{box-shadow:0 0 4px #f87171}to{box-shadow:0 0 12px #f87171}}
+/* PACK OPENING MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:#1a1a2e;border-radius:16px;padding:28px;max-width:500px;width:100%;border:1px solid var(--accent);text-align:center;max-height:90vh;overflow-y:auto}
+.modal h2{color:var(--accent2);font-size:1.2rem;margin-bottom:16px}
+.pull-card{background:var(--card2);border-radius:12px;padding:20px;margin:8px 0;border:2px solid #333;animation:popIn .3s ease}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.pull-card .big-icon{font-size:3rem;margin-bottom:8px}
+.pull-card .pull-name{font-weight:700;font-size:1rem;margin-bottom:4px}
+.pull-card .pull-val{color:var(--gold);font-size:.85rem}
+/* AUCTION */
+.auction-item{background:var(--card);border-radius:12px;padding:16px;border:1px solid #333;margin-bottom:12px}
+.auction-timer{color:var(--red);font-weight:700;font-size:.9rem}
+.auction-timer.safe{color:var(--green)}
+.bid-row{display:flex;gap:8px;margin-top:10px}
+.bid-input{flex:1;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.9rem}
+/* ACHIEVEMENTS */
+.achieve{background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid #333;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.achieve-icon{font-size:1.8rem;flex-shrink:0}
+.achieve-info{flex:1}
+.achieve-name{font-weight:700;font-size:.88rem}
+.achieve-desc{font-size:.75rem;color:var(--muted);margin-top:2px}
+.achieve-reward{color:var(--gold);font-size:.78rem;font-weight:600}
+.achieve.done{border-color:var(--gold);background:#1e1a00}
+.achieve.done .achieve-icon{filter:drop-shadow(0 0 6px var(--gold))}
+/* PROGRESS BAR */
+.prog-wrap{background:#2a2a3a;border-radius:4px;height:6px;margin-top:6px}
+.prog-bar{height:6px;border-radius:4px;background:var(--accent);transition:width .3s}
+/* BTNS */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--accent2)}
+.btn-sm{background:#2a2a3a;color:var(--text);border:1px solid #444;border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer}
+.btn-sm:hover{background:#333}
+.btn-green{background:var(--green)}
+.btn-green:hover{background:#059669}
+.btn-red{background:var(--red)}
+.btn-red:hover{background:#dc2626}
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.stat-c{background:var(--card);border-radius:10px;padding:12px 16px;flex:1;min-width:100px;text-align:center;border:1px solid #2a2a3a}
+.stat-n{font-size:1.6rem;font-weight:800;color:var(--accent2)}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:2px}
+/* DAILY */
+.daily-challenge{background:var(--card);border-radius:10px;padding:14px;border:1px solid #2a2a3a;margin-bottom:10px}
+.daily-title{font-weight:700;font-size:.88rem;margin-bottom:6px}
+.daily-reward{color:var(--gold);font-size:.78rem}
+/* TRADE */
+.trade-area{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.trade-area{grid-template-columns:1fr}}
+input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.88rem;width:100%}
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:8px;margin-bottom:6px}
+.lb-rank{font-size:1rem;font-weight:800;width:28px;color:var(--muted)}
+.lb-rank.top{color:var(--gold)}
+.lb-name{flex:1;font-weight:600;font-size:.88rem}
+.lb-val{color:var(--gold);font-size:.85rem;font-weight:700}
+/* MISC */
+.empty{color:var(--muted);font-style:italic;font-size:.85rem;text-align:center;padding:20px}
+.tag{display:inline-block;background:#2a2a3a;border-radius:6px;padding:2px 8px;font-size:.72rem;color:var(--muted)}
+.notification{position:fixed;bottom:20px;right:20px;background:#1a1a2e;border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:.85rem;z-index:300;animation:slideIn .3s ease;max-width:280px}
+.notification.hidden{display:none}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:none;opacity:1}}
+.fusion-slot{background:#1a1a2e;border:2px dashed #333;border-radius:10px;padding:16px;text-align:center;min-height:80px;cursor:pointer;transition:border-color .15s}
+.fusion-slot:hover{border-color:var(--accent)}
+.fusion-slot.filled{border-color:var(--accent);border-style:solid}
+/* PACK ANIMATIONS */
+@keyframes packSpin{0%{transform:rotateY(0)}50%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+@keyframes shake{0%,100%{transform:translate(0)}10%,30%,50%,70%,90%{transform:translate(-8px,0)}20%,40%,60%,80%{transform:translate(8px,0)}}
+@keyframes cosmicEntry{0%{opacity:0;transform:scale(0.3)}60%{transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes starPulse{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.pack-spinning{animation:packSpin 0.8s ease-in-out}
+.screen-shake{animation:shake 0.6s ease-in-out}
+.cosmic-card-reveal{animation:cosmicEntry 1.2s ease-out}
+/* QUANTITY SELECTOR */
+.qty-selector{display:flex;gap:4px;margin:8px 0;justify-content:center;flex-wrap:wrap}
+.qty-btn{background:#2a2a3a;color:var(--muted);border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;font-weight:700;transition:all .15s}
+.qty-btn:hover{background:#333;color:var(--text)}
+.qty-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pack-cooldown{color:var(--red);font-size:.75rem;margin-top:4px;font-weight:700}
+/* COSMIC REVEAL OVERLAY */
+#cosmicReveal{position:fixed;inset:0;background:#000;z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column}
+#cosmicReveal .stars-bg{position:absolute;inset:0;overflow:hidden}
+#cosmicReveal .star-dot{position:absolute;background:#fff;border-radius:50%;animation:starPulse 1.5s infinite}
+#cosmicReveal .cosmic-center{position:relative;z-index:2;text-align:center}
+/* ODDS PACK SECTION */
+.odds-pack{background:var(--card);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #2a2a3a}
+.odds-pack-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.odds-pack-title{font-weight:800;font-size:1rem}
+.odds-pack-collected{color:var(--muted);font-size:.78rem;margin-left:auto}
+.odds-card-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #222;font-size:.8rem}
+.odds-card-row:last-child{border-bottom:none}
+.odds-card-chance{color:var(--muted);margin-left:auto;font-size:.75rem}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div class="notification hidden" id="notif"></div>
+
+<!-- USERNAME MODAL -->
+<div class="modal-overlay" id="usernameModal">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🃏</div>
+    <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
+    <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
+    <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span style="color:#555;font-size:.75rem">or</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+    <button onclick="signInWithGoogle()" style="width:100%;background:#fff;color:#333;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
+    </button>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
+    <div style="margin-top:14px;border-top:1px solid #222;padding-top:12px">
+      <input type="text" id="adminCodeInput" placeholder="Admin code..." maxlength="10" style="text-align:center;font-size:.85rem;background:#111;border-color:#222;color:#444" oninput="checkAdminCode(this.value)"/>
+    </div>
+  </div>
+</div>
+
+<!-- INCOMING TRADE POPUP -->
+<div class="incoming-trade-popup hidden" id="incomingPopup" style="display:none">
+  <div style="font-size:2.5rem;margin-bottom:8px">🔄</div>
+  <h3 style="color:var(--accent2);margin-bottom:6px" id="popupTitle">Trade Request!</h3>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px" id="popupDesc"></p>
+  <div id="popupCards" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px"></div>
+  <div class="popup-btns">
+    <button class="popup-btn accept" onclick="acceptTradePopup()">✅ Accept</button>
+    <button class="popup-btn decline" onclick="declineTradePopup()">❌ Decline</button>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="popupOverlay" onclick="declineTradePopup()" style="z-index:490;display:none"></div>
+
+<!-- TRADE ROOM -->
+<div class="trade-room-overlay hidden" id="tradeRoomOverlay" style="display:none">
+  <div class="trade-room">
+    <div class="trade-room-header">
+      <div style="font-size:2rem">🔄</div>
+      <h2>Live Trade Room</h2>
+      <p style="color:#888;font-size:.8rem;margin-top:4px" id="tradeRoomWith"></p>
+    </div>
+    
+    <!-- Trade sides -->
+    <div class="trade-room-sides">
+      <div class="trade-room-col">
+        <h3 id="mySideLabel">Your Cards</h3>
+        <div class="trade-room-cards" id="myTradeCards"></div>
+        <div style="margin-top:8px;font-size:.75rem;color:#888">Click your inventory to add:</div>
+        <div id="myTRInv" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;margin-top:6px"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--accent2)">⇌</div>
+      <div class="trade-room-col">
+        <h3 id="theirSideLabel">Their Cards</h3>
+        <div class="trade-room-cards" id="theirTradeCards"><p style="color:#555;font-size:.75rem">Waiting for them to add cards...</p></div>
+      </div>
+    </div>
+
+    <div class="trade-status-bar" id="tradeStatusBar">Both players must click Ready to proceed</div>
+
+    <!-- Ready buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="ready-btn not-ready" id="myReadyBtn" onclick="toggleReady()">⚡ Ready Up</button>
+      <button class="ready-btn not-ready" id="theirReadyBtn" disabled>Waiting...</button>
+    </div>
+
+    <!-- Final confirm (shown when both ready) -->
+    <div id="finalConfirm" style="display:none">
+      <div style="text-align:center;color:var(--gold);font-weight:700;margin-bottom:10px">⚡ Both players ready! Confirm trade?</div>
+      <div class="final-btns">
+        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT</button>
+        <button class="final-btn cancel" onclick="cancelTradeRoom()">❌ CANCEL</button>
+      </div>
+    </div>
+
+    <button class="btn-sm" onclick="cancelTradeRoom()" style="margin-top:12px;width:100%">🚪 Leave Trade Room</button>
+  </div>
+</div>
+
+<!-- GOOGLE USERNAME PICKER -->
+<div class="modal-overlay hidden" id="googlePickerModal" style="display:none;z-index:600">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+    <h2 style="margin-bottom:6px">One more thing!</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Choose your in-game username. This is what others will see on the leaderboard and in trades.</p>
+    <input type="text" id="googleUsernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="confirmGoogleUsername()" style="width:100%">✅ Set Username</button>
+  </div>
+</div>
+
+<!-- COSMIC REVEAL OVERLAY -->
+<div id="cosmicReveal" style="display:none;position:fixed;inset:0;background:#000;z-index:500;align-items:center;justify-content:center;flex-direction:column">
+  <div class="stars-bg" id="cosmicStars" style="position:absolute;inset:0;overflow:hidden"></div>
+  <div class="cosmic-center" id="cosmicCardDisplay" style="position:relative;z-index:2;text-align:center"></div>
+</div>
+
+<!-- PACK OPENING MODAL -->
+<div class="modal-overlay hidden" id="packModal">
+  <div class="modal">
+    <h2 id="modalTitle">Opening Pack...</h2>
+    <div id="modalCards"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn" onclick="closeModal()">✅ Keep Cards</button>
+      <button class="btn btn-red" onclick="sellAllPulled()">💰 Sell All</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-logo">🃏 Card.io</div>
+  <button class="nb active" id="nav-shop" onclick="show('shop')">🏪 Shop</button>
+  <button class="nb" id="nav-inventory" onclick="show('inventory')">🎒 Inventory</button>
+  <button class="nb" id="nav-auction" onclick="show('auction')">⏱ Auction</button>
+  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade</button>
+  <button class="nb" id="nav-fuse" onclick="show('fuse')">⚗️ Fuse</button>
+  <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
+  <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
+  <button class="nb" id="nav-odds" onclick="show('odds')">🎲 Odds</button>
+  <button class="nb" id="nav-trademachine" onclick="show('trademachine')">🔄 Trade Machine</button>
+  <div class="coins-badge" style="margin-left:auto;flex-shrink:0">💰 <span id="coinDisplay">0</span></div>
+</nav>
+
+<!-- Fixed account button - always visible top right -->
+<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:44px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
+
+<!-- Account menu (outside nav so it isn't clipped) -->
+<div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
+  <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
+  <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
+  <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
+</div>
+
+<!-- SHOP -->
+<div class="page active" id="page-shop">
+  <div class="stats-bar">
+    <div class="stat-c"><div class="stat-n" id="stat-cards">0</div><div class="stat-l">Cards</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-packs">0</div><div class="stat-l">Packs Opened</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-mythics">0</div><div class="stat-l">Mythics</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-worth">0</div><div class="stat-l">Collection Value</div></div>
+  </div>
+  <div class="section-title">🗓 Daily Challenges</div>
+  <div id="dailyChallenges"></div>
+  <div class="section-title" style="margin-top:20px">🏪 Card Packs</div>
+  <div class="grid grid-3" id="packGrid"></div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page" id="page-inventory">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+    <div class="section-title" style="margin:0">🎒 Your Collection</div>
+    <button class="btn-sm" onclick="sortInv('val')">Sort by Value</button>
+    <button class="btn-sm" onclick="sortInv('rarity')">Sort by Rarity</button>
+    <button class="btn-sm" onclick="sortInv('type')">Sort by Type</button>
+    <button class="btn btn-red" style="margin-left:auto;padding:7px 14px;font-size:.82rem" onclick="sellAll('common')">Sell Commons</button>
+    <button class="btn btn-red" style="padding:7px 14px;font-size:.82rem" onclick="sellAll('legendary')">Sell Legendaries</button>
+  </div>
+  <div class="grid grid-2" id="invGrid"></div>
+</div>
+
+<!-- AUCTION -->
+<div class="page" id="page-auction">
+  <div class="section-title">⏱ Live Auction House</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Bid on rare cards before time runs out. AI bidders will compete against you!</p>
+  <div id="auctionList"></div>
+</div>
+
+<!-- TRADE -->
+<div class="page" id="page-trade">
+  <!-- Tab switcher -->
+  <div style="display:flex;gap:0;margin-bottom:16px;background:#111;border-radius:10px;padding:4px">
+    <button id="tradeTabInbox" onclick="switchTradeTab('inbox')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s">📥 Inbox</button>
+    <button id="tradeTabSend" onclick="switchTradeTab('send')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:none;color:#888;transition:all .15s">📤 Send Trade</button>
+  </div>
+
+  <!-- INBOX TAB -->
+  <div id="tradeInboxTab">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:.85rem;color:var(--muted)">Incoming requests from other players</div>
+      <button class="btn-sm" onclick="checkIncomingTrades()">🔄 Refresh</button>
+    </div>
+    <div class="trade-inbox" id="incomingTrades"><p class="empty">No incoming trades — check back later</p></div>
+  </div>
+
+  <!-- SEND TAB -->
+  <div id="tradeSendTab" style="display:none">
+    <div class="send-trade-form">
+      <h3>📤 Send a Trade Request</h3>
+      <div style="margin-bottom:12px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Send to username:</label>
+        <input type="text" id="tradeTargetUser" placeholder="Their exact username..." style="font-size:.9rem"/>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Your offer: <span style="color:#888">(tap cards below)</span></label>
+        <div class="staged-row" id="tradeOfferStaged"><span style="color:#555;font-size:.75rem;align-self:center">Nothing staged yet</span></div>
+        <div class="offer-grid" id="tradeOfferInv"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">What you want back:</label>
+        <textarea id="tradeWantInput" placeholder="e.g. Any Mythic card, or specific card name..." style="width:100%;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.85rem;min-height:70px;resize:none"></textarea>
+      </div>
+      <button class="btn" onclick="sendTradeRequest()" style="width:100%">📨 Send Trade Request</button>
+      <div id="tradeSendMsg" style="margin-top:8px;font-size:.82rem;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FUSE -->
+<div class="page" id="page-fuse">
+  <div class="section-title">⚗️ Card Fusion Lab</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Combine 3 cards of the same rarity to fuse them into a higher rarity card!</p>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div class="fusion-slot" id="fslot-0" onclick="openFuseSelect(0)"><div style="color:var(--muted);font-size:.8rem">+ Card 1</div></div>
+    <div class="fusion-slot" id="fslot-1" onclick="openFuseSelect(1)"><div style="color:var(--muted);font-size:.8rem">+ Card 2</div></div>
+    <div class="fusion-slot" id="fslot-2" onclick="openFuseSelect(2)"><div style="color:var(--muted);font-size:.8rem">+ Card 3</div></div>
+    <div style="font-size:1.5rem">→</div>
+    <div class="fusion-slot" id="fslot-result" style="pointer-events:none;border-color:#444"><div style="color:var(--muted);font-size:.8rem">Result</div></div>
+  </div>
+  <button class="btn" onclick="executeFuse()" id="fuseBtn" disabled>⚗️ Fuse Cards</button>
+  <div id="fuseMsg" style="margin-top:12px;font-size:.85rem"></div>
+  <div style="margin-top:16px;font-size:.8rem;color:var(--muted)">
+    3 Commons → 1 Rare &nbsp;|&nbsp; 3 Rares → 1 Epic &nbsp;|&nbsp; 3 Epics → 1 Legendary &nbsp;|&nbsp; 3 Legendaries → 1 Mythic
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="page" id="page-achieve">
+  <div class="section-title">🏆 Achievements</div>
+  <div id="achieveList"></div>
+</div>
+
+<!-- ODDS -->
+<div class="page" id="page-odds">
+  <div class="section-title">🎲 Pull Rates & Card Odds</div>
+  <div class="card-box" style="margin-bottom:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+      <thead><tr style="border-bottom:1px solid #333">
+        <th style="text-align:left;padding:8px;color:var(--muted)">Rarity</th>
+        <th style="text-align:center;padding:8px;color:var(--muted)">Pull Rate</th>
+        <th style="text-align:right;padding:8px;color:var(--muted)">Coin Value</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:8px"><span class="rarity-badge r-common" style="position:static">COMMON</span></td><td style="text-align:center;padding:8px">50%</td><td style="text-align:right;padding:8px;color:var(--muted)">4–20</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-rare" style="position:static">RARE</span></td><td style="text-align:center;padding:8px">26%</td><td style="text-align:right;padding:8px;color:#60a5fa">60–120</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-epic" style="position:static">EPIC</span></td><td style="text-align:center;padding:8px">13%</td><td style="text-align:right;padding:8px;color:#a78bfa">200–340</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-legendary" style="position:static">LEGENDARY</span></td><td style="text-align:center;padding:8px">7%</td><td style="text-align:right;padding:8px;color:#f59e0b">380–600</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-mythic" style="position:static">MYTHIC</span></td><td style="text-align:center;padding:8px">3%</td><td style="text-align:right;padding:8px;color:#f87171">800–1200</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-god" style="position:static">GOD-TIER</span></td><td style="text-align:center;padding:8px">0.9%</td><td style="text-align:right;padding:8px;color:#e040fb">2300–3000</td></tr>
+        <tr style="background:#001a4a22"><td style="padding:8px"><span class="rarity-badge r-cosmic" style="position:static">✦ COSMIC</span></td><td style="text-align:center;padding:8px;color:#00e5ff">0.1%</td><td style="text-align:right;padding:8px;color:#00e5ff">PRICELESS</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="oddsPackList"></div>
+  <p style="font-size:.78rem;color:var(--muted);margin-top:12px">⚠️ The Cosmic card is exclusive to The ONE Pack. If you pull it, you're the luckiest player alive.</p>
+</div>
+
+<!-- TRADE MACHINE PAGE -->
+<div class="page" id="page-trademachine">
+  <div class="section-title">🔄 Card Trade Machine</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Propose card-for-card trades with AI collectors. They'll accept if the value is fair!</p>
+  
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-bottom:16px">
+    <!-- YOUR SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Offer</div>
+      <div id="tmSendList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from your inventory below</p>
+      </div>
+      <div style="color:#aaa;font-size:.75rem;margin-bottom:6px">Your inventory:</div>
+      <div id="tmInvGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+    
+    <div style="font-size:2rem;color:var(--accent2);padding-top:28px;text-align:center">⇌</div>
+    
+    <!-- AI SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Receive</div>
+      <div id="tmRecvList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from AI collection below</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="color:#aaa;font-size:.75rem">AI Collector:</div>
+        <button class="btn-sm" style="font-size:.72rem;padding:4px 10px" onclick="switchAICollector()">🔄 Switch</button>
+      </div>
+      <div id="tmAIGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+  </div>
+  
+  <!-- Trade eval -->
+  <div id="tmEval" style="background:#111;border-radius:10px;padding:12px;margin-bottom:14px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:.85rem">Your value: <strong id="tmYourVal">0</strong></div>
+      <div style="font-size:.85rem">Their value: <strong id="tmTheirVal">0</strong></div>
+      <div id="tmVerdict" style="font-size:.85rem;font-weight:700"></div>
+    </div>
+    <div style="background:#222;border-radius:6px;height:10px;margin-top:8px;overflow:hidden">
+      <div id="tmBar" style="height:10px;border-radius:6px;transition:width .3s,background .3s"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button class="btn" id="tmExecuteBtn" onclick="executeTM()" disabled>✅ Propose Trade</button>
+    <button class="btn-sm" onclick="clearTM()">❌ Clear</button>
+  </div>
+  <div id="tmMsg" style="margin-top:10px;font-size:.85rem"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="page" id="page-leaderboard">
+  <div class="section-title">📊 Global Rankings</div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="btn-sm" onclick="renderLB('coins')">💰 By Coins</button>
+    <button class="btn-sm" onclick="renderLB('cards')">🃏 By Cards</button>
+    <button class="btn-sm" onclick="renderLB('mythics')">🔥 By Mythics</button>
+  </div>
+  <div id="lbList"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const PACKS = [
+  {id:'street',name:'Street Pack',icon:'🏙️',desc:'Urban legends, streetball, hustle cards',price:100,
+   cards:[
+    {name:'Street Legend',icon:'🏀',type:'street',rarity:'legendary',val:420},
+    {name:'Blacktop King',icon:'👑',type:'street',rarity:'epic',val:270},
+    {name:'Corner Hustler',icon:'💼',type:'street',rarity:'rare',val:90},
+    {name:'Graffiti Ghost',icon:'🎨',type:'street',rarity:'epic',val:240},
+    {name:'Subway Rider',icon:'🚇',type:'street',rarity:'common',val:12},
+    {name:'Street Vendor',icon:'🌮',type:'street',rarity:'common',val:9},
+    {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
+    {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
+    {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
+    {name:'The Professor',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
+  ]},
+  {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
+   cards:[
+    {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
+    {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
+    {name:'Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
+    {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
+    {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
+    {name:'Tide Shifter',icon:'🌙',type:'ocean',rarity:'rare',val:85},
+    {name:'Reef Fish',icon:'🐠',type:'ocean',rarity:'common',val:10},
+    {name:'Sand Dollar',icon:'🪙',type:'ocean',rarity:'common',val:7},
+    {name:'Whale Rider',icon:'🐋',type:'ocean',rarity:'rare',val:78},
+    {name:'Abyss Dweller',icon:'👁️',type:'ocean',rarity:'mythic',val:920},
+  ]},
+  {id:'warrior',name:'Warrior Pack',icon:'⚔️',desc:'Samurai, knights, ancient warriors',price:150,
+   cards:[
+    {name:'Ronin Master',icon:'🗡️',type:'warrior',rarity:'legendary',val:480},
+    {name:'Spartan Elite',icon:'🛡️',type:'warrior',rarity:'epic',val:300},
+    {name:'Viking Berserker',icon:'🪓',type:'warrior',rarity:'epic',val:280},
+    {name:'Shadow Samurai',icon:'⚔️',type:'warrior',rarity:'mythic',val:1000},
+    {name:'Crusader Knight',icon:'✝️',type:'warrior',rarity:'legendary',val:450},
+    {name:'Ninja Assassin',icon:'🥷',type:'warrior',rarity:'rare',val:100},
+    {name:'Foot Soldier',icon:'🪖',type:'warrior',rarity:'common',val:14},
+    {name:'Iron Fist',icon:'🥊',type:'warrior',rarity:'rare',val:88},
+    {name:'War General',icon:'🎖️',type:'warrior',rarity:'legendary',val:460},
+    {name:'Ancient Warlord',icon:'👺',type:'warrior',rarity:'god',val:2600},
+    {name:'Squire',icon:'📜',type:'warrior',rarity:'common',val:11},
+  ]},
+  {id:'galaxy',name:'Galaxy Pack',icon:'🌌',desc:'Stars, nebulas, cosmic phenomena',price:200,
+   cards:[
+    {name:'Black Hole',icon:'🕳️',type:'galaxy',rarity:'mythic',val:990},
+    {name:'Supernova',icon:'💥',type:'galaxy',rarity:'mythic',val:960},
+    {name:'Nebula Weaver',icon:'🌌',type:'galaxy',rarity:'legendary',val:520},
+    {name:'Pulsar',icon:'⭐',type:'galaxy',rarity:'epic',val:270},
+    {name:'Dark Matter',icon:'🌑',type:'galaxy',rarity:'epic',val:250},
+    {name:'Comet Rider',icon:'☄️',type:'galaxy',rarity:'rare',val:95},
+    {name:'Star Dust',icon:'✨',type:'galaxy',rarity:'common',val:10},
+    {name:'Dwarf Star',icon:'🌟',type:'galaxy',rarity:'rare',val:80},
+    {name:'Quasar God',icon:'🌀',type:'galaxy',rarity:'god',val:2700},
+    {name:'Andromeda Lord',icon:'🔭',type:'galaxy',rarity:'legendary',val:500},
+    {name:'Space Rock',icon:'🪐',type:'galaxy',rarity:'common',val:8},
+  ]},
+  {id:'royalty',name:'Royalty Pack',icon:'👑',desc:'Kings, queens, empires',price:250,
+   cards:[
+    {name:'Emperor Eternal',icon:'👑',type:'royalty',rarity:'god',val:2800},
+    {name:'Queen of Swords',icon:'🗡️',type:'royalty',rarity:'mythic',val:1050},
+    {name:'Crimson King',icon:'♟️',type:'royalty',rarity:'legendary',val:560},
+    {name:'Noble Duchess',icon:'👸',type:'royalty',rarity:'legendary',val:530},
+    {name:'Court Mage',icon:'🧙',type:'royalty',rarity:'epic',val:310},
+    {name:'Royal Guard',icon:'⚜️',type:'royalty',rarity:'epic',val:290},
+    {name:'Jester',icon:'🃏',type:'royalty',rarity:'rare',val:105},
+    {name:'Peasant',icon:'🧑‍🌾',type:'royalty',rarity:'common',val:12},
+    {name:'Chamberlain',icon:'📜',type:'royalty',rarity:'rare',val:92},
+    {name:'Throne Keeper',icon:'🏰',type:'royalty',rarity:'legendary',val:510},
+    {name:'Tax Collector',icon:'💰',type:'royalty',rarity:'common',val:9},
+  ]},
+  {id:'shadow',name:'Shadow Pack',icon:'🖤',desc:'Assassins, ninjas, dark arts',price:300,
+   cards:[
+    {name:'Void Reaper',icon:'💀',type:'shadow',rarity:'god',val:2900},
+    {name:'Shadow Oracle',icon:'🔮',type:'shadow',rarity:'mythic',val:1100},
+    {name:'Phantom Blade',icon:'🗡️',type:'shadow',rarity:'legendary',val:570},
+    {name:'Dark Sorcerer',icon:'😈',type:'shadow',rarity:'legendary',val:540},
+    {name:'Night Stalker',icon:'🦇',type:'shadow',rarity:'epic',val:320},
+    {name:'Shade Walker',icon:'👥',type:'shadow',rarity:'epic',val:295},
+    {name:'Shadow Rogue',icon:'🥷',type:'shadow',rarity:'rare',val:110},
+    {name:'Dark Whisper',icon:'🌑',type:'shadow',rarity:'common',val:18},
+    {name:'Cursed Dagger',icon:'🔪',type:'shadow',rarity:'rare',val:95},
+    {name:'Abyss Eye',icon:'👁️',type:'shadow',rarity:'mythic',val:980},
+    {name:'Dark Fragment',icon:'💠',type:'shadow',rarity:'common',val:14},
+  ]},
+  {id:'titan',name:'Titan Pack',icon:'💥',desc:'Gods, giants, mythological titans',price:350,
+   cards:[
+    {name:'Zeus Almighty',icon:'⚡',type:'titan',rarity:'god',val:3000},
+    {name:'Titan Cronus',icon:'⏳',type:'titan',rarity:'mythic',val:1200},
+    {name:'Hercules',icon:'💪',type:'titan',rarity:'legendary',val:580},
+    {name:'Atlas',icon:'🌍',type:'titan',rarity:'legendary',val:555},
+    {name:'Cyclops',icon:'👁️',type:'titan',rarity:'epic',val:340},
+    {name:'Minotaur',icon:'🐂',type:'titan',rarity:'epic',val:315},
+    {name:'Centaur',icon:'🏹',type:'titan',rarity:'rare',val:115},
+    {name:'Stone Giant',icon:'🪨',type:'titan',rarity:'rare',val:100},
+    {name:'Mountain Troll',icon:'👹',type:'titan',rarity:'common',val:20},
+    {name:'Titan Shard',icon:'🔷',type:'titan',rarity:'common',val:15},
+    {name:'Prometheus',icon:'🔥',type:'titan',rarity:'legendary',val:530},
+  ]},
+  {id:'prismatic',name:'Prismatic Pack',icon:'🌈',desc:'Ultra rare, best god tier odds',price:500,
+   cards:[
+    {name:'Diamond God',icon:'💎',type:'prismatic',rarity:'god',val:3000},
+    {name:'Golden Phoenix',icon:'🌟',type:'prismatic',rarity:'god',val:2950},
+    {name:'Prismatic Dragon',icon:'🐉',type:'prismatic',rarity:'mythic',val:1200},
+    {name:'Rainbow Knight',icon:'🌈',type:'prismatic',rarity:'legendary',val:600},
+    {name:'Crystal Queen',icon:'💠',type:'prismatic',rarity:'legendary',val:580},
+    {name:'Spectrum Sage',icon:'🔯',type:'prismatic',rarity:'epic',val:340},
+    {name:'Holo Warrior',icon:'✨',type:'prismatic',rarity:'epic',val:320},
+    {name:'Prism Shard',icon:'🔮',type:'prismatic',rarity:'rare',val:120},
+    {name:'Color Wisp',icon:'🫧',type:'prismatic',rarity:'common',val:22},
+    {name:'Arc Fragment',icon:'🎇',type:'prismatic',rarity:'rare',val:112},
+    {name:'Gold Dust',icon:'🌠',type:'prismatic',rarity:'common',val:18},
+  ]},
+  {id:'theone',name:'The ONE Pack',icon:'☄️',desc:'Contains THE ONLY COSMIC CARD in the game',price:1000,
+   cards:[
+    {name:'THE COSMIC ONE',icon:'✦',type:'theone',rarity:'cosmic',val:99999},
+    {name:'Singularity God',icon:'🌀',type:'theone',rarity:'god',val:2900},
+    {name:'Infinity Nexus',icon:'♾️',type:'theone',rarity:'god',val:2800},
+    {name:'Omega Titan',icon:'💥',type:'theone',rarity:'mythic',val:1300},
+    {name:'Alpha Prime',icon:'🔱',type:'theone',rarity:'mythic',val:1250},
+    {name:'Eternal Flame',icon:'🔥',type:'theone',rarity:'legendary',val:650},
+    {name:'Void Fragment',icon:'⬛',type:'theone',rarity:'legendary',val:610},
+    {name:'Time Shard',icon:'⏳',type:'theone',rarity:'epic',val:360},
+    {name:'Space Rune',icon:'🔯',type:'theone',rarity:'epic',val:340},
+    {name:'Starborn',icon:'⭐',type:'theone',rarity:'rare',val:130},
+    {name:'Cosmic Dust',icon:'🌌',type:'theone',rarity:'common',val:25},
+  ]},
+];
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+
+function playPackOpen(){
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(200,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(800,ctx.currentTime+0.3);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+function playCardFlip(){
+  try{
+    const ctx=getAudio();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const g=ctx.createGain();g.gain.value=0.2;
+    s.connect(g);g.connect(ctx.destination);s.start();
+  }catch(e){}
+}
+
+function playGodPull(){
+  try{
+    const ctx=getAudio();
+    [60,80,100].forEach((freq,i)=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.15,ctx.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.5);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+1.5);
+    });
+  }catch(e){}
+}
+
+function playCosmicPull(){
+  try{
+    const ctx=getAudio();
+    for(let i=0;i<5;i++){
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type=i%2?'sine':'square';
+      o.frequency.value=20+i*15;
+      g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.2);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+3);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+3);
+    }
+    const o2=ctx.createOscillator();const g2=ctx.createGain();
+    o2.connect(g2);g2.connect(ctx.destination);
+    o2.type='sine';o2.frequency.setValueAtTime(2000,ctx.currentTime+0.5);
+    o2.frequency.exponentialRampToValueAtTime(4000,ctx.currentTime+2);
+    g2.gain.setValueAtTime(0.1,ctx.currentTime+0.5);g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2);
+    o2.start(ctx.currentTime+0.5);o2.stop(ctx.currentTime+2);
+  }catch(e){}
+}
+
+const RARITY_ORDER = ['common','rare','epic','legendary','mythic','god','cosmic'];
+const RARITY_RATES = {common:.50,rare:.26,epic:.13,legendary:.07,mythic:.03,god:.009,cosmic:.001};
+const RARITY_UP = {common:'rare',rare:'epic',epic:'legendary',legendary:'mythic',mythic:'god'};
+
+const ACHIEVEMENTS = [
+  {id:'first_pull',name:'First Pull',desc:'Open your first pack',icon:'🎉',reward:50,check:s=>s.packsOpened>=1},
+  {id:'collector10',name:'Collector',desc:'Own 10 cards',icon:'🃏',reward:100,check:s=>s.inv.length>=10},
+  {id:'collector50',name:'Hoarder',desc:'Own 50 cards',icon:'📦',reward:300,check:s=>s.inv.length>=50},
+  {id:'rich',name:'Getting Rich',desc:'Earn 1000 coins',icon:'💰',reward:200,check:s=>s.totalEarned>=1000},
+  {id:'big_spender',name:'Big Spender',desc:'Spend 1000 coins on packs',icon:'💸',reward:250,check:s=>s.totalSpent>=1000},
+  {id:'first_mythic',name:'Mythic Hunter',desc:'Pull your first Mythic',icon:'🔥',reward:500,check:s=>s.inv.some(c=>c.rarity==='mythic')},
+  {id:'three_mythics',name:'Mythic Collector',desc:'Own 3 Mythics',icon:'👑',reward:1000,check:s=>s.inv.filter(c=>c.rarity==='mythic').length>=3},
+  {id:'first_fuse',name:'Alchemist',desc:'Fuse 3 cards',icon:'⚗️',reward:150,check:s=>s.fusions>=1},
+  {id:'trade_master',name:'Trade Master',desc:'Complete 5 trades',icon:'🔄',reward:200,check:s=>s.trades>=5},
+  {id:'auction_win',name:'Auction Winner',desc:'Win your first auction',icon:'🏆',reward:300,check:s=>s.auctionWins>=1},
+  {id:'daily5',name:'Daily Player',desc:'Complete 5 daily challenges',icon:'📅',reward:400,check:s=>s.dailiesCompleted>=5},
+  {id:'god_card',name:'God Touched',desc:'Pull a God-Tier card',icon:'👁️',reward:2000,check:s=>s.inv.some(c=>c.rarity==='god')},
+  {id:'cosmic',name:'THE ONE',desc:'Pull the Cosmic card',icon:'✦',reward:10000,check:s=>s.inv.some(c=>c.rarity==='cosmic')},
+  {id:'fuse_god',name:'Ascension',desc:'Fuse cards to reach God-Tier',icon:'⚗️',reward:3000,check:s=>s.fusions>=1&&s.inv.some(c=>c.rarity==='god')},
+  {id:'all_packs',name:'Pack Explorer',desc:'Open every pack type',icon:'🗺️',reward:500,check:s=>Object.keys(s.packsOpenedByType||{}).length>=6},
+];
+
+// Leaderboard uses real players only
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let G = {
+  username:'', coins:750, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
+  fusions:0, trades:0, auctionWins:0, dailiesCompleted:0, sellCount:0,
+  packsOpenedByType:{}, stagedCards:[], lastDaily:null,
+  auctions:[], dailies:[], achDone:[], pendingPulled:[],
+  packCooldowns:{}
+};
+let packQuantities = {};
+// ── FIREBASE SETUP ───────────────────────────────────────────────────────────
+const firebaseConfig = {
+  databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com",
+  apiKey: "AIzaSyDkw-xjR0eAkCPR3BRQyKk0Rnusu3pbEmw",
+  authDomain: "cardio-game-3713.firebaseapp.com",
+  projectId: "cardio-game-3713"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function saveLB(){
+  if(!G.username)return;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  const entry = {
+    name:G.username,coins:G.coins,cards:G.inv.length,
+    mythics:G.inv.filter(c=>c.rarity==='mythic').length,
+    gods:G.inv.filter(c=>c.rarity==='god').length,
+    cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,
+    updated:Date.now()
+  };
+  // Update leaderboard (no password in public data)
+  db.ref('leaderboard/'+safeKey).set(entry).catch(()=>{});
+  // Backup full save to cloud (includes password hash)
+  db.ref('saves/'+safeKey).set({...G}).catch(()=>{});
+}
+
+function getLB(){return [];} // not used anymore - Firebase handles it
+const KEY='cardio_v2';
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
+const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+let isAdmin = false;
+
+function checkAdminCode(val){
+  if(val.trim()==='3713'){
+    document.getElementById('adminCodeInput').value='';
+    isAdmin=true;
+    G={username:'treyandis',passHash:'admin_3713',coins:99999,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    // Try to load existing save silently
+    const safeKey='treyandis';
+    db.ref('saves/'+safeKey).once('value').then(snap=>{
+      const cs=snap.val();
+      if(cs&&cs.username==='treyandis'){G=cs;G.username='treyandis';G.passHash='admin_3713';}
+      save();
+    }).catch(()=>{save();});
+    // Close modal immediately and start game
+    const um=document.getElementById('usernameModal');
+    if(um){um.classList.add('hidden');um.style.display='none';}
+    document.body.style.overflow='auto';
+    startGame();
+    notify('👑 Admin access granted — tap ⚙️ Admin button for controls');
+  }
+}
+
+function closeAdmin(){
+  const m=document.getElementById('adminModal');
+  m.classList.add('hidden');m.style.display='none';
+}
+
+function adminAction(action){
+  const result=document.getElementById('adminResult');
+  const userList=document.getElementById('adminUserList');
   if(action==='wipeAll'){
     if(!confirm('WIPE ALL USERS? Cannot be undone!'))return;
     Promise.all([
