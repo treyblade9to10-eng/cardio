@@ -170,6 +170,9 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
       <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
     </button>
     <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
+    <div style="margin-top:14px;border-top:1px solid #222;padding-top:12px">
+      <input type="text" id="adminCodeInput" placeholder="Admin code..." maxlength="10" style="text-align:center;font-size:.85rem;background:#111;border-color:#222;color:#444" oninput="checkAdminCode(this.value)"/>
+    </div>
   </div>
 </div>
 
@@ -276,7 +279,7 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 </nav>
 
 <!-- Fixed account button - always visible top right -->
-<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:8px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
+<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:44px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
 
 <!-- Account menu (outside nav so it isn't clipped) -->
 <div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
@@ -484,14 +487,14 @@ const PACKS = [
     {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
     {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
     {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
-    {name:'Streetball God',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'The Professor',icon:'⛹️',type:'street',rarity:'god',val:2400},
     {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
   ]},
   {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
    cards:[
     {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
     {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
-    {name:'Deep Sea Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
     {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
     {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
     {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
@@ -730,6 +733,71 @@ const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
 const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+function checkAdminCode(val){
+  if(val==='3713'){
+    const m=document.getElementById('adminModal');
+    m.classList.remove('hidden');m.style.display='';
+    document.getElementById('adminCodeInput').value='';
+  }
+}
+
+function closeAdmin(){
+  const m=document.getElementById('adminModal');
+  m.classList.add('hidden');m.style.display='none';
+}
+
+function adminAction(action){
+  const result=document.getElementById('adminResult');
+  const userList=document.getElementById('adminUserList');
+  if(action==='wipeAll'){
+    if(!confirm('WIPE ALL USERS? Cannot be undone!'))return;
+    Promise.all([
+      db.ref('leaderboard').remove(),
+      db.ref('saves').remove(),
+      db.ref('trades').remove(),
+      db.ref('traderooms').remove(),
+      db.ref('notifications').remove(),
+      db.ref('tradenotifs').remove()
+    ]).then(()=>{result.innerHTML='<span style="color:#10b981">✅ All users wiped</span>';}).catch(()=>{result.innerHTML='<span style="color:#ef4444">❌ Error</span>';});
+  }
+  else if(action==='giveCoins'){
+    G.coins+=99999;G.totalEarned+=99999;save();updateCoins();
+    result.innerHTML='<span style="color:#f5c518">💰 +99999 coins added</span>';
+  }
+  else if(action==='allCards'){
+    PACKS.forEach(pack=>{
+      pack.cards.forEach(c=>{
+        G.inv.push({...c,id:Date.now()+Math.random()});
+      });
+    });
+    save();renderInv();renderStats();
+    result.innerHTML='<span style="color:#a855f7">🃏 All cards unlocked</span>';
+  }
+  else if(action==='viewUsers'){
+    db.ref('leaderboard').once('value').then(snap=>{
+      const data=snap.val();
+      if(!data){userList.innerHTML='No users';return;}
+      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
+      userList.innerHTML='<strong style="color:#f5c518">All Players:</strong><br>'+
+        users.map(u=>`${u.name} — 💰${(u.coins||0).toLocaleString()} | 🃏${u.cards||0} | Mythics:${u.mythics||0}`).join('<br>');
+    });
+  }
+  else if(action==='wipeSelf'){
+    if(!confirm('Reset YOUR account?'))return;
+    G={...G,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();renderAll();
+    result.innerHTML='<span style="color:#10b981">✅ Your account reset</span>';
+  }
+  else if(action==='unlockCosmic'){
+    const cosmic=PACKS.find(p=>p.id==='theone')?.cards.find(c=>c.rarity==='cosmic');
+    if(cosmic){G.inv.push({...cosmic,id:Date.now()});save();renderInv();renderStats();}
+    result.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to inventory</span>';
+  }
+}
 function loadFromLocal(){
   try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d.username)Object.assign(G,d);}}catch(e){}
 }
@@ -2030,7 +2098,8 @@ function renderOdds(){
     const rarityGroups={};
     p.cards.forEach(c=>{rarityGroups[c.rarity]=(rarityGroups[c.rarity]||0)+1;});
     
-    const rarityPctLines=Object.entries(rarityGroups).map(([r,count])=>`
+    const RO_SORT=['cosmic','god','mythic','legendary','epic','rare','common'];
+    const rarityPctLines=Object.entries(rarityGroups).sort((a,b)=>RO_SORT.indexOf(a[0])-RO_SORT.indexOf(b[0])).map(([r,count])=>`
       <span class="rarity-badge ${rColors[r]}" style="position:static;margin-right:4px">${r.toUpperCase()}: ${rarityChances[r]||'?'}</span>`).join('');
     
     return `<div class="odds-pack">
@@ -2043,7 +2112,10 @@ function renderOdds(){
         <div class="odds-pack-collected">${owned}/${totalCards} cards collected</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${rarityPctLines}</div>
-      ${p.cards.map(c=>{
+      ${[...p.cards].sort((a,b)=>{
+        const RO=['cosmic','god','mythic','legendary','epic','rare','common'];
+        return RO.indexOf(a.rarity)-RO.indexOf(b.rarity);
+      }).map(c=>{
         const haveCount=(G.inv.filter(i=>i.name===c.name&&i.type===c.type).length);
         return `<div class="odds-card-row">
           <span style="font-size:1.1rem">${c.icon}</span>
@@ -2060,5 +2132,25 @@ function renderOdds(){
 
 init();
 </script>
+
+<!-- ADMIN PANEL -->
+<div class="modal-overlay hidden" id="adminModal" style="display:none;z-index:700">
+  <div class="modal" style="max-width:480px;border-color:#f5c518">
+    <div style="font-size:2rem;margin-bottom:4px">⚙️</div>
+    <h2 style="color:#f5c518;margin-bottom:4px">Admin Panel</h2>
+    <p style="color:#888;font-size:.75rem;margin-bottom:16px">Code 3713 · Full control</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button onclick="adminAction('wipeAll')" style="background:#b00020;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🗑️ Wipe All Users</button>
+      <button onclick="adminAction('giveCoins')" style="background:#10b981;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💰 Give Self 99999</button>
+      <button onclick="adminAction('allCards')" style="background:#7c3aed;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🃏 Get All Cards</button>
+      <button onclick="adminAction('viewUsers')" style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">👥 View All Users</button>
+      <button onclick="adminAction('wipeSelf')" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🔄 Reset My Account</button>
+      <button onclick="adminAction('unlockCosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
+    </div>
+    <div id="adminResult" style="margin-top:12px;font-size:.82rem;color:#aaa;min-height:20px"></div>
+    <div id="adminUserList" style="margin-top:10px;max-height:200px;overflow-y:auto;font-size:.78rem"></div>
+    <button onclick="closeAdmin()" class="btn-sm" style="margin-top:12px;width:100%">Close</button>
+  </div>
+</div>
 </body>
 </html>
