@@ -115,6 +115,33 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 .fusion-slot{background:#1a1a2e;border:2px dashed #333;border-radius:10px;padding:16px;text-align:center;min-height:80px;cursor:pointer;transition:border-color .15s}
 .fusion-slot:hover{border-color:var(--accent)}
 .fusion-slot.filled{border-color:var(--accent);border-style:solid}
+/* PACK ANIMATIONS */
+@keyframes packSpin{0%{transform:rotateY(0)}50%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+@keyframes shake{0%,100%{transform:translate(0)}10%,30%,50%,70%,90%{transform:translate(-8px,0)}20%,40%,60%,80%{transform:translate(8px,0)}}
+@keyframes cosmicEntry{0%{opacity:0;transform:scale(0.3)}60%{transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes starPulse{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.pack-spinning{animation:packSpin 0.8s ease-in-out}
+.screen-shake{animation:shake 0.6s ease-in-out}
+.cosmic-card-reveal{animation:cosmicEntry 1.2s ease-out}
+/* QUANTITY SELECTOR */
+.qty-selector{display:flex;gap:4px;margin:8px 0;justify-content:center;flex-wrap:wrap}
+.qty-btn{background:#2a2a3a;color:var(--muted);border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;font-weight:700;transition:all .15s}
+.qty-btn:hover{background:#333;color:var(--text)}
+.qty-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pack-cooldown{color:var(--red);font-size:.75rem;margin-top:4px;font-weight:700}
+/* COSMIC REVEAL OVERLAY */
+#cosmicReveal{position:fixed;inset:0;background:#000;z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column}
+#cosmicReveal .stars-bg{position:absolute;inset:0;overflow:hidden}
+#cosmicReveal .star-dot{position:absolute;background:#fff;border-radius:50%;animation:starPulse 1.5s infinite}
+#cosmicReveal .cosmic-center{position:relative;z-index:2;text-align:center}
+/* ODDS PACK SECTION */
+.odds-pack{background:var(--card);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #2a2a3a}
+.odds-pack-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.odds-pack-title{font-weight:800;font-size:1rem}
+.odds-pack-collected{color:var(--muted);font-size:.78rem;margin-left:auto}
+.odds-card-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #222;font-size:.8rem}
+.odds-card-row:last-child{border-bottom:none}
+.odds-card-chance{color:var(--muted);margin-left:auto;font-size:.75rem}
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -213,6 +240,12 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
     <input type="text" id="googleUsernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
     <button class="btn" onclick="confirmGoogleUsername()" style="width:100%">✅ Set Username</button>
   </div>
+</div>
+
+<!-- COSMIC REVEAL OVERLAY -->
+<div id="cosmicReveal" style="display:none;position:fixed;inset:0;background:#000;z-index:500;align-items:center;justify-content:center;flex-direction:column">
+  <div class="stars-bg" id="cosmicStars" style="position:absolute;inset:0;overflow:hidden"></div>
+  <div class="cosmic-center" id="cosmicCardDisplay" style="position:relative;z-index:2;text-align:center"></div>
 </div>
 
 <!-- PACK OPENING MODAL -->
@@ -371,7 +404,8 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
       </tbody>
     </table>
   </div>
-  <p style="font-size:.78rem;color:var(--muted)">⚠️ The Cosmic card is one-of-a-kind — only one exists per pack type. If you pull it, you're the luckiest player alive.</p>
+  <div id="oddsPackList"></div>
+  <p style="font-size:.78rem;color:var(--muted);margin-top:12px">⚠️ The Cosmic card is exclusive to The ONE Pack. If you pull it, you're the luckiest player alive.</p>
 </div>
 
 <!-- TRADE MACHINE PAGE -->
@@ -439,139 +473,197 @@ input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;bor
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const PACKS = [
-  {id:'sports',name:'Sports Pack',icon:'🏀',desc:'Basketball, Football, Soccer stars',price:100,
+  {id:'street',name:'Street Pack',icon:'🏙️',desc:'Urban legends, streetball, hustle cards',price:100,
    cards:[
-    {name:'LeBron James',icon:'👑',type:'sports',rarity:'legendary',val:450},
-    {name:'Stephen Curry',icon:'🎯',type:'sports',rarity:'legendary',val:420},
-    {name:'Patrick Mahomes',icon:'🏈',type:'sports',rarity:'epic',val:280},
-    {name:'Lionel Messi',icon:'⚽',type:'sports',rarity:'mythic',val:900},
-    {name:'Giannis',icon:'🦌',type:'sports',rarity:'legendary',val:380},
-    {name:'Ja Morant',icon:'✈️',type:'sports',rarity:'epic',val:220},
-    {name:'Rookie SG',icon:'🏃',type:'sports',rarity:'rare',val:80},
-    {name:'Bench Warmer',icon:'🪑',type:'sports',rarity:'common',val:15},
-    {name:'Practice Player',icon:'🏋️',type:'sports',rarity:'common',val:10},
-    {name:'Victor Wembanyama',icon:'🛸',type:'sports',rarity:'mythic',val:850},
-   {name:'Michael Jordan',icon:'🐐',type:'sports',rarity:'god',val:2400},
-   {name:'THE COSMIC ATHLETE',icon:'✦',type:'sports',rarity:'cosmic',val:99999},
+    {name:'Street Legend',icon:'🏀',type:'street',rarity:'legendary',val:420},
+    {name:'Blacktop King',icon:'👑',type:'street',rarity:'epic',val:270},
+    {name:'Corner Hustler',icon:'💼',type:'street',rarity:'rare',val:90},
+    {name:'Graffiti Ghost',icon:'🎨',type:'street',rarity:'epic',val:240},
+    {name:'Subway Rider',icon:'🚇',type:'street',rarity:'common',val:12},
+    {name:'Street Vendor',icon:'🌮',type:'street',rarity:'common',val:9},
+    {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
+    {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
+    {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
+    {name:'Streetball God',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
   ]},
-  {id:'fantasy',name:'Fantasy Pack',icon:'🧙',desc:'Dragons, wizards & mythical beasts',price:150,
+  {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
    cards:[
-    {name:'Ancient Dragon',icon:'🐉',type:'fantasy',rarity:'mythic',val:1000},
-    {name:'Dark Wizard',icon:'🧙‍♂️',type:'fantasy',rarity:'legendary',val:500},
-    {name:'Phoenix',icon:'🔥',type:'fantasy',rarity:'legendary',val:480},
-    {name:'Griffin Knight',icon:'🦅',type:'fantasy',rarity:'epic',val:250},
-    {name:'Forest Elf',icon:'🧝',type:'fantasy',rarity:'epic',val:200},
-    {name:'River Troll',icon:'👹',type:'fantasy',rarity:'rare',val:90},
-    {name:'Cave Goblin',icon:'👺',type:'fantasy',rarity:'rare',val:70},
-    {name:'Wood Sprite',icon:'🌿',type:'fantasy',rarity:'common',val:12},
-    {name:'Stone Imp',icon:'🪨',type:'fantasy',rarity:'common',val:8},
-    {name:'Celestial Angel',icon:'😇',type:'fantasy',rarity:'mythic',val:950},
-   {name:'God of Creation',icon:'🌟',type:'fantasy',rarity:'god',val:2700},
-   {name:'THE COSMIC DEITY',icon:'✦',type:'fantasy',rarity:'cosmic',val:99999},
+    {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
+    {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
+    {name:'Deep Sea Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
+    {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
+    {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
+    {name:'Tide Shifter',icon:'🌙',type:'ocean',rarity:'rare',val:85},
+    {name:'Reef Fish',icon:'🐠',type:'ocean',rarity:'common',val:10},
+    {name:'Sand Dollar',icon:'🪙',type:'ocean',rarity:'common',val:7},
+    {name:'Whale Rider',icon:'🐋',type:'ocean',rarity:'rare',val:78},
+    {name:'Abyss Dweller',icon:'👁️',type:'ocean',rarity:'mythic',val:920},
   ]},
-  {id:'tech',name:'Tech Pack',icon:'🤖',desc:'AI, robots & futuristic gadgets',price:120,
+  {id:'warrior',name:'Warrior Pack',icon:'⚔️',desc:'Samurai, knights, ancient warriors',price:150,
    cards:[
-    {name:'Quantum AI',icon:'🧠',type:'tech',rarity:'mythic',val:880},
-    {name:'War Robot',icon:'🤖',type:'tech',rarity:'legendary',val:460},
-    {name:'Hacker Ghost',icon:'👾',type:'tech',rarity:'epic',val:240},
-    {name:'Drone Army',icon:'🚁',type:'tech',rarity:'epic',val:210},
-    {name:'Nanobot',icon:'💉',type:'tech',rarity:'rare',val:85},
-    {name:'Data Core',icon:'💾',type:'tech',rarity:'rare',val:75},
-    {name:'Basic Circuit',icon:'⚡',type:'tech',rarity:'common',val:10},
-    {name:'Broken Chip',icon:'🔌',type:'tech',rarity:'common',val:6},
-    {name:'Cyber Samurai',icon:'⚔️',type:'tech',rarity:'legendary',val:430},
-    {name:'Super Computer',icon:'🖥️',type:'tech',rarity:'mythic',val:920},
-   {name:'God AI Singularity',icon:'🧬',type:'tech',rarity:'god',val:2600},
-   {name:'THE COSMIC MACHINE',icon:'✦',type:'tech',rarity:'cosmic',val:99999},
+    {name:'Ronin Master',icon:'🗡️',type:'warrior',rarity:'legendary',val:480},
+    {name:'Spartan Elite',icon:'🛡️',type:'warrior',rarity:'epic',val:300},
+    {name:'Viking Berserker',icon:'🪓',type:'warrior',rarity:'epic',val:280},
+    {name:'Shadow Samurai',icon:'⚔️',type:'warrior',rarity:'mythic',val:1000},
+    {name:'Crusader Knight',icon:'✝️',type:'warrior',rarity:'legendary',val:450},
+    {name:'Ninja Assassin',icon:'🥷',type:'warrior',rarity:'rare',val:100},
+    {name:'Foot Soldier',icon:'🪖',type:'warrior',rarity:'common',val:14},
+    {name:'Iron Fist',icon:'🥊',type:'warrior',rarity:'rare',val:88},
+    {name:'War General',icon:'🎖️',type:'warrior',rarity:'legendary',val:460},
+    {name:'Ancient Warlord',icon:'👺',type:'warrior',rarity:'god',val:2600},
+    {name:'Squire',icon:'📜',type:'warrior',rarity:'common',val:11},
   ]},
-  {id:'nature',name:'Nature Pack',icon:'🌿',desc:'Animals, plants & natural wonders',price:80,
+  {id:'galaxy',name:'Galaxy Pack',icon:'🌌',desc:'Stars, nebulas, cosmic phenomena',price:200,
    cards:[
-    {name:'White Tiger',icon:'🐯',type:'nature',rarity:'legendary',val:400},
-    {name:'Great Whale',icon:'🐋',type:'nature',rarity:'epic',val:230},
-    {name:'Golden Eagle',icon:'🦅',type:'nature',rarity:'epic',val:200},
-    {name:'Volcano',icon:'🌋',type:'nature',rarity:'mythic',val:800},
-    {name:'Northern Lights',icon:'🌌',type:'nature',rarity:'mythic',val:820},
-    {name:'Red Fox',icon:'🦊',type:'nature',rarity:'rare',val:65},
-    {name:'Butterfly',icon:'🦋',type:'nature',rarity:'rare',val:60},
-    {name:'Oak Tree',icon:'🌳',type:'nature',rarity:'common',val:8},
-    {name:'Pebble',icon:'🪨',type:'nature',rarity:'common',val:4},
-    {name:'Crystal Cave',icon:'💎',type:'nature',rarity:'legendary',val:410},
-   {name:'Nature God',icon:'🌍',type:'nature',rarity:'god',val:2300},
-   {name:'THE COSMIC FORCE',icon:'✦',type:'nature',rarity:'cosmic',val:99999},
+    {name:'Black Hole',icon:'🕳️',type:'galaxy',rarity:'mythic',val:990},
+    {name:'Supernova',icon:'💥',type:'galaxy',rarity:'mythic',val:960},
+    {name:'Nebula Weaver',icon:'🌌',type:'galaxy',rarity:'legendary',val:520},
+    {name:'Pulsar',icon:'⭐',type:'galaxy',rarity:'epic',val:270},
+    {name:'Dark Matter',icon:'🌑',type:'galaxy',rarity:'epic',val:250},
+    {name:'Comet Rider',icon:'☄️',type:'galaxy',rarity:'rare',val:95},
+    {name:'Star Dust',icon:'✨',type:'galaxy',rarity:'common',val:10},
+    {name:'Dwarf Star',icon:'🌟',type:'galaxy',rarity:'rare',val:80},
+    {name:'Quasar God',icon:'🌀',type:'galaxy',rarity:'god',val:2700},
+    {name:'Andromeda Lord',icon:'🔭',type:'galaxy',rarity:'legendary',val:500},
+    {name:'Space Rock',icon:'🪐',type:'galaxy',rarity:'common',val:8},
   ]},
-  {id:'legends',name:'Legends Pack',icon:'⭐',desc:'Icons, gods & historical legends',price:200,
+  {id:'royalty',name:'Royalty Pack',icon:'👑',desc:'Kings, queens, empires',price:250,
    cards:[
-    {name:'Zeus',icon:'⚡',type:'legends',rarity:'mythic',val:1100},
-    {name:'Cleopatra',icon:'👸',type:'legends',rarity:'legendary',val:520},
-    {name:'Genghis Khan',icon:'🗡️',type:'legends',rarity:'legendary',val:490},
-    {name:'Da Vinci',icon:'🎨',type:'legends',rarity:'epic',val:300},
-    {name:'Nikola Tesla',icon:'🔬',type:'legends',rarity:'epic',val:280},
-    {name:'Pirate King',icon:'🏴‍☠️',type:'legends',rarity:'rare',val:110},
-    {name:'Knight Templar',icon:'⚔️',type:'legends',rarity:'rare',val:95},
-    {name:'Village Elder',icon:'👴',type:'legends',rarity:'common',val:18},
-    {name:'Town Crier',icon:'📯',type:'legends',rarity:'common',val:12},
-    {name:'Atlantis Lord',icon:'🌊',type:'legends',rarity:'mythic',val:1050},
-   {name:'Olympian God',icon:'⚡',type:'legends',rarity:'god',val:2900},
-   {name:'THE COSMIC LEGEND',icon:'✦',type:'legends',rarity:'cosmic',val:99999},
+    {name:'Emperor Eternal',icon:'👑',type:'royalty',rarity:'god',val:2800},
+    {name:'Queen of Swords',icon:'🗡️',type:'royalty',rarity:'mythic',val:1050},
+    {name:'Crimson King',icon:'♟️',type:'royalty',rarity:'legendary',val:560},
+    {name:'Noble Duchess',icon:'👸',type:'royalty',rarity:'legendary',val:530},
+    {name:'Court Mage',icon:'🧙',type:'royalty',rarity:'epic',val:310},
+    {name:'Royal Guard',icon:'⚜️',type:'royalty',rarity:'epic',val:290},
+    {name:'Jester',icon:'🃏',type:'royalty',rarity:'rare',val:105},
+    {name:'Peasant',icon:'🧑‍🌾',type:'royalty',rarity:'common',val:12},
+    {name:'Chamberlain',icon:'📜',type:'royalty',rarity:'rare',val:92},
+    {name:'Throne Keeper',icon:'🏰',type:'royalty',rarity:'legendary',val:510},
+    {name:'Tax Collector',icon:'💰',type:'royalty',rarity:'common',val:9},
   ]},
-  {id:'space',name:'Space Pack',icon:'🚀',desc:'Astronauts, planets & cosmic horrors',price:175,
+  {id:'shadow',name:'Shadow Pack',icon:'🖤',desc:'Assassins, ninjas, dark arts',price:300,
    cards:[
-    {name:'Black Hole',icon:'🕳️',type:'space',rarity:'mythic',val:990},
-    {name:'Supernova',icon:'💥',type:'space',rarity:'mythic',val:960},
-    {name:'Galaxy Drifter',icon:'🌌',type:'space',rarity:'legendary',val:510},
-    {name:'Mars Colony',icon:'🔴',type:'space',rarity:'epic',val:260},
-    {name:'Asteroid Belt',icon:'☄️',type:'space',rarity:'epic',val:230},
-    {name:'Moon Walker',icon:'🌙',type:'space',rarity:'rare',val:88},
-    {name:'Satellite',icon:'🛰️',type:'space',rarity:'rare',val:72},
-    {name:'Space Rock',icon:'🪐',type:'space',rarity:'common',val:11},
-    {name:'Stardust',icon:'✨',type:'space',rarity:'common',val:7},
-    {name:'Alien Overlord',icon:'👽',type:'space',rarity:'legendary',val:470},
-   {name:'Universe Ender',icon:'🌀',type:'space',rarity:'god',val:2200},
-   {name:'THE COSMIC ONE',icon:'✦',type:'space',rarity:'cosmic',val:99999},
+    {name:'Void Reaper',icon:'💀',type:'shadow',rarity:'god',val:2900},
+    {name:'Shadow Oracle',icon:'🔮',type:'shadow',rarity:'mythic',val:1100},
+    {name:'Phantom Blade',icon:'🗡️',type:'shadow',rarity:'legendary',val:570},
+    {name:'Dark Sorcerer',icon:'😈',type:'shadow',rarity:'legendary',val:540},
+    {name:'Night Stalker',icon:'🦇',type:'shadow',rarity:'epic',val:320},
+    {name:'Shade Walker',icon:'👥',type:'shadow',rarity:'epic',val:295},
+    {name:'Shadow Rogue',icon:'🥷',type:'shadow',rarity:'rare',val:110},
+    {name:'Dark Whisper',icon:'🌑',type:'shadow',rarity:'common',val:18},
+    {name:'Cursed Dagger',icon:'🔪',type:'shadow',rarity:'rare',val:95},
+    {name:'Abyss Eye',icon:'👁️',type:'shadow',rarity:'mythic',val:980},
+    {name:'Dark Fragment',icon:'💠',type:'shadow',rarity:'common',val:14},
   ]},
-  {id:'dark',name:'Dark Matter Pack',icon:'🖤',desc:'Shadows, voids & things from beyond',price:300,
+  {id:'titan',name:'Titan Pack',icon:'💥',desc:'Gods, giants, mythological titans',price:350,
    cards:[
-    {name:'Void King',icon:'👁️',type:'dark',rarity:'god',val:2500},
-    {name:'Shadow Reaper',icon:'💀',type:'dark',rarity:'mythic',val:1050},
-    {name:'Nightmare Lord',icon:'😈',type:'dark',rarity:'legendary',val:550},
-    {name:'Dark Oracle',icon:'🔮',type:'dark',rarity:'epic',val:320},
-    {name:'Shadow Blade',icon:'🗡️',type:'dark',rarity:'rare',val:100},
-    {name:'Dark Whisper',icon:'🌑',type:'dark',rarity:'common',val:20},
-    {name:'Void Wraith',icon:'👻',type:'dark',rarity:'epic',val:290},
-    {name:'Abyss Walker',icon:'🦇',type:'dark',rarity:'legendary',val:520},
-    {name:'Chaos Fragment',icon:'💠',type:'dark',rarity:'common',val:15},
-    {name:'The Nothing',icon:'◼',type:'dark',rarity:'mythic',val:980},
-    {name:'COSMIC VOID',icon:'✦',type:'dark',rarity:'cosmic',val:99999},
-   ]},
-  {id:'anime',name:'Anime Pack',icon:'⚔️',desc:'Warriors, jutsu & overpowered characters',price:250,
+    {name:'Zeus Almighty',icon:'⚡',type:'titan',rarity:'god',val:3000},
+    {name:'Titan Cronus',icon:'⏳',type:'titan',rarity:'mythic',val:1200},
+    {name:'Hercules',icon:'💪',type:'titan',rarity:'legendary',val:580},
+    {name:'Atlas',icon:'🌍',type:'titan',rarity:'legendary',val:555},
+    {name:'Cyclops',icon:'👁️',type:'titan',rarity:'epic',val:340},
+    {name:'Minotaur',icon:'🐂',type:'titan',rarity:'epic',val:315},
+    {name:'Centaur',icon:'🏹',type:'titan',rarity:'rare',val:115},
+    {name:'Stone Giant',icon:'🪨',type:'titan',rarity:'rare',val:100},
+    {name:'Mountain Troll',icon:'👹',type:'titan',rarity:'common',val:20},
+    {name:'Titan Shard',icon:'🔷',type:'titan',rarity:'common',val:15},
+    {name:'Prometheus',icon:'🔥',type:'titan',rarity:'legendary',val:530},
+  ]},
+  {id:'prismatic',name:'Prismatic Pack',icon:'🌈',desc:'Ultra rare, best god tier odds',price:500,
    cards:[
-    {name:'Goku Ultra Instinct',icon:'💫',type:'anime',rarity:'god',val:2800},
-    {name:'Saitama',icon:'👊',type:'anime',rarity:'god',val:2600},
-    {name:'Gojo Satoru',icon:'😎',type:'anime',rarity:'mythic',val:1100},
-    {name:'Naruto Uzumaki',icon:'🦊',type:'anime',rarity:'legendary',val:560},
-    {name:'Luffy Gear 5',icon:'☁️',type:'anime',rarity:'legendary',val:540},
-    {name:'Levi Ackerman',icon:'⚔️',type:'anime',rarity:'epic',val:310},
-    {name:'Ichigo Kurosaki',icon:'🌙',type:'anime',rarity:'epic',val:295},
-    {name:'Kakashi',icon:'👁',type:'anime',rarity:'rare',val:105},
-    {name:'Genin Trainee',icon:'🥷',type:'anime',rarity:'common',val:16},
-    {name:'Academy Student',icon:'📚',type:'anime',rarity:'common',val:11},
-    {name:'THE COSMIC SHINOBI',icon:'✦',type:'anime',rarity:'cosmic',val:99999},
-   ]},
-  {id:'rich',name:'Ultra Premium Pack',icon:'💎',desc:'Exclusive ultra-rare pulls only',price:500,
+    {name:'Diamond God',icon:'💎',type:'prismatic',rarity:'god',val:3000},
+    {name:'Golden Phoenix',icon:'🌟',type:'prismatic',rarity:'god',val:2950},
+    {name:'Prismatic Dragon',icon:'🐉',type:'prismatic',rarity:'mythic',val:1200},
+    {name:'Rainbow Knight',icon:'🌈',type:'prismatic',rarity:'legendary',val:600},
+    {name:'Crystal Queen',icon:'💠',type:'prismatic',rarity:'legendary',val:580},
+    {name:'Spectrum Sage',icon:'🔯',type:'prismatic',rarity:'epic',val:340},
+    {name:'Holo Warrior',icon:'✨',type:'prismatic',rarity:'epic',val:320},
+    {name:'Prism Shard',icon:'🔮',type:'prismatic',rarity:'rare',val:120},
+    {name:'Color Wisp',icon:'🫧',type:'prismatic',rarity:'common',val:22},
+    {name:'Arc Fragment',icon:'🎇',type:'prismatic',rarity:'rare',val:112},
+    {name:'Gold Dust',icon:'🌠',type:'prismatic',rarity:'common',val:18},
+  ]},
+  {id:'theone',name:'The ONE Pack',icon:'☄️',desc:'Contains THE ONLY COSMIC CARD in the game',price:1000,
    cards:[
-    {name:'Diamond God',icon:'💎',type:'premium',rarity:'god',val:3000},
-    {name:'Golden Phoenix',icon:'🌟',type:'premium',rarity:'god',val:2900},
-    {name:'Platinum Dragon',icon:'🐉',type:'premium',rarity:'mythic',val:1200},
-    {name:'Crown Jewel',icon:'👑',type:'premium',rarity:'legendary',val:600},
-    {name:'Sapphire Knight',icon:'💠',type:'premium',rarity:'legendary',val:580},
-    {name:'Ruby Warrior',icon:'❤️',type:'premium',rarity:'epic',val:340},
-    {name:'Emerald Sage',icon:'💚',type:'premium',rarity:'epic',val:320},
-    {name:'Silver Fox',icon:'🦊',type:'premium',rarity:'rare',val:120},
-    {name:'Bronze Medal',icon:'🥉',type:'premium',rarity:'common',val:25},
-    {name:'Gold Dust',icon:'✨',type:'premium',rarity:'rare',val:115},
-    {name:'THE COSMIC CROWN',icon:'✦',type:'premium',rarity:'cosmic',val:99999},
-   ]},
+    {name:'THE COSMIC ONE',icon:'✦',type:'theone',rarity:'cosmic',val:99999},
+    {name:'Singularity God',icon:'🌀',type:'theone',rarity:'god',val:2900},
+    {name:'Infinity Nexus',icon:'♾️',type:'theone',rarity:'god',val:2800},
+    {name:'Omega Titan',icon:'💥',type:'theone',rarity:'mythic',val:1300},
+    {name:'Alpha Prime',icon:'🔱',type:'theone',rarity:'mythic',val:1250},
+    {name:'Eternal Flame',icon:'🔥',type:'theone',rarity:'legendary',val:650},
+    {name:'Void Fragment',icon:'⬛',type:'theone',rarity:'legendary',val:610},
+    {name:'Time Shard',icon:'⏳',type:'theone',rarity:'epic',val:360},
+    {name:'Space Rune',icon:'🔯',type:'theone',rarity:'epic',val:340},
+    {name:'Starborn',icon:'⭐',type:'theone',rarity:'rare',val:130},
+    {name:'Cosmic Dust',icon:'🌌',type:'theone',rarity:'common',val:25},
+  ]},
 ];
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+
+function playPackOpen(){
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(200,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(800,ctx.currentTime+0.3);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+function playCardFlip(){
+  try{
+    const ctx=getAudio();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const g=ctx.createGain();g.gain.value=0.2;
+    s.connect(g);g.connect(ctx.destination);s.start();
+  }catch(e){}
+}
+
+function playGodPull(){
+  try{
+    const ctx=getAudio();
+    [60,80,100].forEach((freq,i)=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.15,ctx.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.5);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+1.5);
+    });
+  }catch(e){}
+}
+
+function playCosmicPull(){
+  try{
+    const ctx=getAudio();
+    for(let i=0;i<5;i++){
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type=i%2?'sine':'square';
+      o.frequency.value=20+i*15;
+      g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.2);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+3);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+3);
+    }
+    const o2=ctx.createOscillator();const g2=ctx.createGain();
+    o2.connect(g2);g2.connect(ctx.destination);
+    o2.type='sine';o2.frequency.setValueAtTime(2000,ctx.currentTime+0.5);
+    o2.frequency.exponentialRampToValueAtTime(4000,ctx.currentTime+2);
+    g2.gain.setValueAtTime(0.1,ctx.currentTime+0.5);g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2);
+    o2.start(ctx.currentTime+0.5);o2.stop(ctx.currentTime+2);
+  }catch(e){}
+}
 
 const RARITY_ORDER = ['common','rare','epic','legendary','mythic','god','cosmic'];
 const RARITY_RATES = {common:.50,rare:.26,epic:.13,legendary:.07,mythic:.03,god:.009,cosmic:.001};
@@ -599,11 +691,13 @@ const ACHIEVEMENTS = [
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let G = {
-  username:'', coins:300, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
+  username:'', coins:750, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
   fusions:0, trades:0, auctionWins:0, dailiesCompleted:0, sellCount:0,
   packsOpenedByType:{}, stagedCards:[], lastDaily:null,
-  auctions:[], dailies:[], achDone:[], pendingPulled:[]
+  auctions:[], dailies:[], achDone:[], pendingPulled:[],
+  packCooldowns:{}
 };
+let packQuantities = {};
 // ── FIREBASE SETUP ───────────────────────────────────────────────────────────
 const firebaseConfig = {
   databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com",
@@ -861,7 +955,7 @@ function confirmGoogleUsername(){
       notify('❌ That username is taken! Pick another');return;
     }
     // Create account
-    G={username:name,passHash:'google_'+uid,googleUid:uid,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+    G={username:name,passHash:'google_'+uid,googleUid:uid,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
       fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
       packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
     save();
@@ -896,7 +990,7 @@ function logout(){
   document.getElementById('accountMenu').style.display='none';
   if(!confirm('Log out of '+G.username+'? Your progress is saved to your account.')) return;
   // Clear local state
-  G={username:'',coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+  G={username:'',coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
     fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
     packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
   localStorage.removeItem(KEY);
@@ -967,12 +1061,12 @@ function setUsername(){
       startGame();
     } else {
       // New account - fresh state with starting coins
-      G={username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
         fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
         packsOpenedByType:{},stagedCards:[],lastDaily:null,
         auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
       save();
-      notify('🎉 Account created, '+name+'! You start with 300 coins 💰');
+      notify('🎉 Account created, '+name+'! You start with 750 coins 💰');
       closeLoginModal();
       startGame();
     }
@@ -982,7 +1076,7 @@ function setUsername(){
     if(G.username===name){
       notify('⚠️ Offline mode - using local save');
     } else {
-      G={username:name,passHash:passHash,coins:300,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
         fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
         packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
     }
@@ -1025,6 +1119,7 @@ function show(page){
   if(page==='fuse')renderFuseSlots();
   if(page==='leaderboard')renderLB('coins');
   if(page==='trademachine')initTM();
+  if(page==='odds')renderOdds();
 }
 
 // ── COINS ─────────────────────────────────────────────────────────────────────
@@ -1039,69 +1134,196 @@ function renderStats(){
 }
 
 // ── PACKS ─────────────────────────────────────────────────────────────────────
-function renderPacks(){
-  const grid=document.getElementById('packGrid');
-  grid.innerHTML=PACKS.map(p=>`
-    <div class="pack" onclick="buyPack('${p.id}')">
-      <div class="pack-icon">${p.icon}</div>
-      <div class="pack-name">${p.name}</div>
-      <div class="pack-desc">${p.desc}</div>
-      <button class="pack-price" onclick="event.stopPropagation();buyPack('${p.id}')">💰 ${p.price} coins</button>
-    </div>
-  `).join('');
+function setPackQty(packId, qty){
+  packQuantities[packId]=qty;
+  renderPacks();
 }
 
-function buyPack(packId){
+function renderPacks(){
+  const grid=document.getElementById('packGrid');
+  const now=Date.now();
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=PACKS.map(p=>{
+    const qty=packQuantities[p.id]||1;
+    const discounts={1:0,3:5,5:8,10:12};
+    const disc=discounts[qty]||0;
+    const basePrice=p.price*qty;
+    const finalPrice=Math.floor(basePrice*(1-disc/100));
+    const cooldownEnd=G.packCooldowns&&G.packCooldowns[p.id]||0;
+    const onCooldown=cooldownEnd>now;
+    const cdSec=onCooldown?Math.ceil((cooldownEnd-now)/1000):0;
+    return `<div class="pack">
+      <div class="pack-icon" id="pack-icon-${p.id}">${p.icon}</div>
+      <div class="pack-name">${p.name}</div>
+      <div class="pack-desc">${p.desc}</div>
+      <div class="qty-selector">
+        ${[1,3,5,10].map(q=>`<button class="qty-btn${qty===q?' active':''}" onclick="event.stopPropagation();setPackQty('${p.id}',${q})">${q}x${q>1?' -'+discounts[q]+'%':''}</button>`).join('')}
+      </div>
+      ${disc>0?`<div style="font-size:.72rem;color:var(--green);margin-bottom:4px">💸 ${disc}% discount applied!</div>`:''}
+      ${onCooldown
+        ? `<button class="pack-price" disabled style="background:#333;cursor:not-allowed">⏳ <span id="cd-${p.id}">${cdSec}s</span></button>`
+        : `<button class="pack-price" onclick="event.stopPropagation();buyPack('${p.id}',${qty})">💰 ${finalPrice} coins${qty>1?' ('+qty+'x)':''}</button>`}
+    </div>`;
+  }).join('');
+}
+
+// Update cooldown timers every second
+setInterval(()=>{
+  const now=Date.now();
+  PACKS.forEach(p=>{
+    const el=document.getElementById('cd-'+p.id);
+    if(el){
+      const rem=Math.ceil(((G.packCooldowns&&G.packCooldowns[p.id]||0)-now)/1000);
+      if(rem>0) el.textContent=rem+'s';
+      else renderPacks();
+    }
+  });
+},1000);
+
+function buyPack(packId, qty=1){
   const pack=PACKS.find(p=>p.id===packId);
   if(!pack)return;
-  if(G.coins<pack.price){notify('❌ Not enough coins!');return;}
-  G.coins-=pack.price;G.totalSpent+=pack.price;
-  G.packsOpened++;
-  G.packsOpenedByType[packId]=(G.packsOpenedByType[packId]||0)+1;
-  // Pull 5 cards
+  const discounts={1:0,3:5,5:8,10:12};
+  const disc=discounts[qty]||0;
+  const totalPrice=Math.floor(pack.price*qty*(1-disc/100));
+  if(G.coins<totalPrice){notify('❌ Not enough coins!');return;}
+  
+  // Check cooldown
+  if(G.packCooldowns&&G.packCooldowns[packId]>Date.now()){
+    notify('⏳ Pack on cooldown!');return;
+  }
+
+  G.coins-=totalPrice;G.totalSpent+=totalPrice;
+  G.packsOpened+=qty;
+  G.packsOpenedByType[packId]=(G.packsOpenedByType[packId]||0)+qty;
+  
+  // Set cooldown
+  if(!G.packCooldowns) G.packCooldowns={};
+  G.packCooldowns[packId]=Date.now()+30000;
+  
+  // Play sound & animate
+  playPackOpen();
+  const iconEl=document.getElementById('pack-icon-'+packId);
+  if(iconEl){iconEl.classList.add('pack-spinning');setTimeout(()=>iconEl.classList.remove('pack-spinning'),800);}
+  
+  // Pull cards (5 per pack * qty)
   const pulled=[];
-  for(let i=0;i<5;i++) pulled.push(pullCard(pack));
+  for(let q=0;q<qty;q++){
+    for(let i=0;i<5;i++) pulled.push(pullCard(pack));
+  }
   G.pendingPulled=[...pulled];
   save();checkAchievements();updateCoins();renderStats();
-  showPackModal(pack.name,pulled);
+  renderPacks();
+  
+  // Check for cosmic
+  const hasCosmic=pulled.some(c=>c.rarity==='cosmic');
+  if(hasCosmic){
+    showPackModal(pack.name,pulled,true);
+  } else {
+    showPackModal(pack.name,pulled,false);
+  }
+  
   // Check daily
   checkDailyProgress();
 }
 
 function pullCard(pack){
+  // For non-ONE packs, exclude cosmic
+  const isOnePack=pack.id==='theone';
+  const rates={...RARITY_RATES};
+  if(!isOnePack){delete rates.cosmic;}
+  
   const r=Math.random();
   let rarity='common';
   let cum=0;
-  for(const[rar,rate] of Object.entries(RARITY_RATES)){cum+=rate;if(r<=cum){rarity=rar;break;}}
+  const totalRate=Object.values(rates).reduce((a,b)=>a+b,0);
+  const adjRates={};
+  for(const[rar,rate] of Object.entries(rates)) adjRates[rar]=rate/totalRate;
+  
+  for(const[rar,rate] of Object.entries(adjRates)){cum+=rate;if(r<=cum){rarity=rar;break;}}
   const pool=pack.cards.filter(c=>c.rarity===rarity);
   const base=pool.length?pool[Math.floor(Math.random()*pool.length)]:{...pack.cards[0]};
   return {...base,id:Date.now()+Math.random(),packType:pack.id};
 }
 
-function showPackModal(packName,cards){
-  document.getElementById('modalTitle').textContent=`📦 ${packName} — 5 Cards!`;
+function showPackModal(packName,cards,hasCosmic=false){
+  const numPacks=Math.ceil(cards.length/5);
+  document.getElementById('modalTitle').textContent=`📦 ${packName}${numPacks>1?' × '+numPacks:''} — ${cards.length} Cards!`;
   const container=document.getElementById('modalCards');
   const rarityColor={common:'#374151',rare:'#1e40af',epic:'#4c1d95',legendary:'#92400e',mythic:'#7f1d1d',god:'#4a0080',cosmic:'#001a4a'};
+  
+  // Play appropriate sound
+  const hasGod=cards.some(c=>c.rarity==='god');
+  if(hasCosmic) playCosmicPull();
+  else if(hasGod) playGodPull();
+  
   container.innerHTML=cards.map((c,i)=>{
     const isGod=c.rarity==='god', isCosmic=c.rarity==='cosmic';
     const specialStyle=isCosmic?'background:linear-gradient(135deg,#000510,#001a4a,#003366);animation:cosmicglow 1s infinite alternate':'';
     const valDisplay=isCosmic?'🌌 PRICELESS':('💰 '+c.val+' coins');
-    return `<div class="pull-card" style="border-color:${rarityColor[c.rarity]||'#333'};animation-delay:${i*.1}s;${specialStyle}">
+    setTimeout(()=>playCardFlip(),i*150);
+    return `<div class="pull-card${isCosmic?' cosmic-card-reveal':''}" style="border-color:${rarityColor[c.rarity]||'#333'};animation-delay:${i*.1}s;${specialStyle}">
       <div class="big-icon" style="${isCosmic?'font-size:3.5rem;filter:drop-shadow(0 0 16px #00e5ff)':isGod?'filter:drop-shadow(0 0 10px #e040fb)':''}">${c.icon}</div>
       <div class="pull-name" style="${isCosmic?'color:#00e5ff;font-size:1.1rem':isGod?'color:#e040fb':''}">${c.name}</div>
       <div style="font-size:.72rem;color:var(--muted);margin:2px 0">${c.type} · <span style="color:${rarityColor[c.rarity]};text-transform:uppercase;font-weight:800">${c.rarity}</span></div>
       <div class="pull-val" style="${isCosmic?'color:#00e5ff':''}"> ${valDisplay}</div>
     </div>`;
   }).join('');
+  
   document.getElementById('packModal').classList.remove('hidden');
+  
+  // Cosmic reveal sequence
+  if(hasCosmic){
+    setTimeout(()=>triggerCosmicReveal(cards.find(c=>c.rarity==='cosmic'), cards),600);
+  }
+}
+
+function triggerCosmicReveal(cosmicCard, allCards){
+  const overlay=document.getElementById('cosmicReveal');
+  const starsEl=document.getElementById('cosmicStars');
+  const cardEl=document.getElementById('cosmicCardDisplay');
+  
+  // Generate stars
+  starsEl.innerHTML='';
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');
+    s.className='star-dot';
+    const size=Math.random()*4+1;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*2}s;animation-duration:${1+Math.random()*2}s`;
+    starsEl.appendChild(s);
+  }
+  
+  // Show cosmic card
+  cardEl.innerHTML=`
+    <div class="cosmic-card-reveal" style="background:linear-gradient(135deg,#000510,#001a4a,#003366);border-radius:20px;padding:40px;border:3px solid #00e5ff;box-shadow:0 0 60px #00e5ff,0 0 120px #0288d1">
+      <div style="font-size:5rem;margin-bottom:16px;filter:drop-shadow(0 0 24px #00e5ff)">${cosmicCard.icon}</div>
+      <div style="color:#00e5ff;font-size:1.6rem;font-weight:900;margin-bottom:8px;animation:cosmicglow 1s infinite alternate">${cosmicCard.name}</div>
+      <div style="color:#00e5ff;font-size:1rem;margin-bottom:4px">✦ COSMIC ✦</div>
+      <div style="color:#7dd3fc;font-size:.9rem">🌌 PRICELESS</div>
+    </div>
+    <div style="color:#00e5ff;font-size:1rem;margin-top:20px;animation:starPulse 1.5s infinite">⭐ THE RAREST PULL IN THE GAME ⭐</div>`;
+  
+  // Fade out other cards in modal
+  document.querySelectorAll('.pull-card:not(.cosmic-card-reveal)').forEach(el=>el.style.opacity='0.1');
+  
+  overlay.style.display='flex';
+  document.body.classList.add('screen-shake');
+  setTimeout(()=>document.body.classList.remove('screen-shake'),600);
+  
+  // After 3 seconds, hide overlay and restore cards
+  setTimeout(()=>{
+    overlay.style.display='none';
+    document.querySelectorAll('.pull-card').forEach(el=>el.style.opacity='');
+  },3000);
 }
 
 function closeModal(){
+  const count=G.pendingPulled.length;
   G.inv.push(...G.pendingPulled);
   G.pendingPulled=[];
   save();checkAchievements();renderInv();renderStats();
   document.getElementById('packModal').classList.add('hidden');
-  notify(`🃏 ${5} cards added to inventory!`);
+  notify(`🃏 ${count} cards added to inventory!`);
 }
 
 function sellAllPulled(){
@@ -1789,6 +2011,51 @@ function notify(msg){
   const el=document.getElementById('notif');
   el.textContent=msg;el.classList.remove('hidden');
   clearTimeout(notifTimer);notifTimer=setTimeout(()=>el.classList.add('hidden'),3000);
+}
+
+// ── ODDS ──────────────────────────────────────────────────────────────────────
+function renderOdds(){
+  const el=document.getElementById('oddsPackList');
+  if(!el)return;
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  const rarityChances={common:'50%',rare:'26%',epic:'13%',legendary:'7%',mythic:'3%',god:'0.9%',cosmic:'0.1%'};
+  
+  // Count rarity distribution in collection
+  const collectSummary={};
+  G.inv.forEach(c=>collectSummary[c.name]=(collectSummary[c.name]||0)+1);
+  
+  el.innerHTML=PACKS.map(p=>{
+    const totalCards=p.cards.length;
+    const owned=p.cards.filter(c=>G.inv.some(i=>i.name===c.name&&i.type===c.type)).length;
+    const rarityGroups={};
+    p.cards.forEach(c=>{rarityGroups[c.rarity]=(rarityGroups[c.rarity]||0)+1;});
+    
+    const rarityPctLines=Object.entries(rarityGroups).map(([r,count])=>`
+      <span class="rarity-badge ${rColors[r]}" style="position:static;margin-right:4px">${r.toUpperCase()}: ${rarityChances[r]||'?'}</span>`).join('');
+    
+    return `<div class="odds-pack">
+      <div class="odds-pack-header">
+        <span style="font-size:1.8rem">${p.icon}</span>
+        <div>
+          <div class="odds-pack-title">${p.name}</div>
+          <div style="font-size:.75rem;color:var(--muted)">💰 ${p.price} coins per pack</div>
+        </div>
+        <div class="odds-pack-collected">${owned}/${totalCards} cards collected</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${rarityPctLines}</div>
+      ${p.cards.map(c=>{
+        const haveCount=(G.inv.filter(i=>i.name===c.name&&i.type===c.type).length);
+        return `<div class="odds-card-row">
+          <span style="font-size:1.1rem">${c.icon}</span>
+          <span style="flex:1;font-size:.82rem;font-weight:600">${c.name}</span>
+          <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+          <span class="odds-card-chance">${rarityChances[c.rarity]||'?'} pull</span>
+          <span style="color:var(--gold);font-size:.75rem;min-width:60px;text-align:right">${c.rarity==='cosmic'?'PRICELESS':'💰'+c.val}</span>
+          ${haveCount?`<span style="color:var(--green);font-size:.7rem;margin-left:6px">✓${haveCount>1?'×'+haveCount:''}</span>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
 }
 
 init();
