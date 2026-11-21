@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Card.io 🃏</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0d0f;--card:#1a1a1f;--card2:#242430;--accent:#7c3aed;--accent2:#a855f7;--gold:#f5c518;--green:#10b981;--red:#ef4444;--text:#e2e8f0;--muted:#64748b}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* NAV */
+.navbar{background:#111118;border-bottom:1px solid #2a2a3a;position:sticky;top:0;z-index:100;display:flex;align-items:center;padding:0 16px;gap:0;overflow-x:auto}
+.nav-logo{color:var(--accent2);font-weight:800;font-size:1.1rem;padding:12px 16px 12px 0;white-space:nowrap}
+.nb{background:none;border:none;color:var(--muted);padding:12px 14px;font-size:.82rem;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;font-weight:600}
+.nb:hover{color:var(--text)}.nb.active{color:var(--accent2);border-bottom-color:var(--accent2)}
+.coins-badge{margin-left:auto;background:#1e1e2e;border:1px solid #333;border-radius:20px;padding:6px 14px;font-size:.85rem;font-weight:700;color:var(--gold);white-space:nowrap;flex-shrink:0}
+/* PAGES */
+.page{display:none;max-width:1100px;margin:0 auto;padding:20px}
+.page.active{display:block;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* CARDS */
+.section-title{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.grid-2{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.grid-3{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card-box{background:var(--card);border-radius:12px;padding:16px;border:1px solid #2a2a3a}
+/* PACK CARDS */
+.pack{background:var(--card);border-radius:14px;padding:18px;border:1px solid #333;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden}
+.pack:hover{transform:translateY(-4px);border-color:var(--accent)}
+.pack-icon{font-size:2.4rem;margin-bottom:8px}
+.pack-name{font-weight:700;font-size:.95rem;margin-bottom:4px}
+.pack-desc{font-size:.75rem;color:var(--muted);margin-bottom:10px}
+.pack-price{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:.85rem;font-weight:700;cursor:pointer;width:100%;transition:background .15s}
+.pack-price:hover{background:var(--accent2)}
+/* COLLECTION CARDS */
+.ccard{background:var(--card2);border-radius:10px;padding:12px;border:1px solid #333;position:relative;transition:all .15s}
+.ccard:hover{border-color:var(--accent)}
+.ccard-icon{font-size:2rem;margin-bottom:6px;text-align:center}
+.ccard-name{font-weight:700;font-size:.82rem;text-align:center;margin-bottom:3px}
+.ccard-type{font-size:.7rem;color:var(--muted);text-align:center;margin-bottom:4px}
+.ccard-val{font-size:.75rem;color:var(--gold);text-align:center;font-weight:600}
+.rarity-badge{position:absolute;top:6px;right:6px;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px}
+.r-common{background:#374151;color:#9ca3af}
+.r-rare{background:#1e3a5f;color:#60a5fa}
+.r-epic{background:#2d1b69;color:#a78bfa}
+.r-legendary{background:#451a03;color:#f59e0b}
+.r-mythic{background:#450a0a;color:#f87171;animation:glow 2s infinite alternate}
+.r-god{background:linear-gradient(135deg,#1a0050,#4a0080);color:#e040fb;animation:godglow 1.5s infinite alternate;font-size:.6rem}
+.r-cosmic{background:linear-gradient(135deg,#000510,#001a4a);color:#00e5ff;animation:cosmicglow 1s infinite alternate;font-size:.6rem}
+@keyframes godglow{from{box-shadow:0 0 6px #e040fb}to{box-shadow:0 0 16px #e040fb,0 0 30px #7b1fa2}}
+@keyframes cosmicglow{from{box-shadow:0 0 8px #00e5ff}to{box-shadow:0 0 20px #00e5ff,0 0 40px #0288d1,0 0 60px #01579b}}
+@keyframes glow{from{box-shadow:0 0 4px #f87171}to{box-shadow:0 0 12px #f87171}}
+/* PACK OPENING MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:#1a1a2e;border-radius:16px;padding:28px;max-width:500px;width:100%;border:1px solid var(--accent);text-align:center;max-height:90vh;overflow-y:auto}
+.modal h2{color:var(--accent2);font-size:1.2rem;margin-bottom:16px}
+.pull-card{background:var(--card2);border-radius:12px;padding:20px;margin:8px 0;border:2px solid #333;animation:popIn .3s ease}
+@keyframes popIn{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.pull-card .big-icon{font-size:3rem;margin-bottom:8px}
+.pull-card .pull-name{font-weight:700;font-size:1rem;margin-bottom:4px}
+.pull-card .pull-val{color:var(--gold);font-size:.85rem}
+/* AUCTION */
+.auction-item{background:var(--card);border-radius:12px;padding:16px;border:1px solid #333;margin-bottom:12px}
+.auction-timer{color:var(--red);font-weight:700;font-size:.9rem}
+.auction-timer.safe{color:var(--green)}
+.bid-row{display:flex;gap:8px;margin-top:10px}
+.bid-input{flex:1;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.9rem}
+/* ACHIEVEMENTS */
+.achieve{background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid #333;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.achieve-icon{font-size:1.8rem;flex-shrink:0}
+.achieve-info{flex:1}
+.achieve-name{font-weight:700;font-size:.88rem}
+.achieve-desc{font-size:.75rem;color:var(--muted);margin-top:2px}
+.achieve-reward{color:var(--gold);font-size:.78rem;font-weight:600}
+.achieve.done{border-color:var(--gold);background:#1e1a00}
+.achieve.done .achieve-icon{filter:drop-shadow(0 0 6px var(--gold))}
+/* PROGRESS BAR */
+.prog-wrap{background:#2a2a3a;border-radius:4px;height:6px;margin-top:6px}
+.prog-bar{height:6px;border-radius:4px;background:var(--accent);transition:width .3s}
+/* BTNS */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:.9rem;font-weight:700;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--accent2)}
+.btn-sm{background:#2a2a3a;color:var(--text);border:1px solid #444;border-radius:7px;padding:7px 14px;font-size:.82rem;cursor:pointer}
+.btn-sm:hover{background:#333}
+.btn-green{background:var(--green)}
+.btn-green:hover{background:#059669}
+.btn-red{background:var(--red)}
+.btn-red:hover{background:#dc2626}
+/* STATS BAR */
+.stats-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.stat-c{background:var(--card);border-radius:10px;padding:12px 16px;flex:1;min-width:100px;text-align:center;border:1px solid #2a2a3a}
+.stat-n{font-size:1.6rem;font-weight:800;color:var(--accent2)}
+.stat-l{font-size:.72rem;color:var(--muted);margin-top:2px}
+/* DAILY */
+.daily-challenge{background:var(--card);border-radius:10px;padding:14px;border:1px solid #2a2a3a;margin-bottom:10px}
+.daily-title{font-weight:700;font-size:.88rem;margin-bottom:6px}
+.daily-reward{color:var(--gold);font-size:.78rem}
+/* TRADE */
+.trade-area{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.trade-area{grid-template-columns:1fr}}
+input[type=text],input[type=number]{background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.88rem;width:100%}
+/* LEADERBOARD */
+.lb-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card2);border-radius:8px;margin-bottom:6px}
+.lb-rank{font-size:1rem;font-weight:800;width:28px;color:var(--muted)}
+.lb-rank.top{color:var(--gold)}
+.lb-name{flex:1;font-weight:600;font-size:.88rem}
+.lb-val{color:var(--gold);font-size:.85rem;font-weight:700}
+/* MISC */
+.empty{color:var(--muted);font-style:italic;font-size:.85rem;text-align:center;padding:20px}
+.tag{display:inline-block;background:#2a2a3a;border-radius:6px;padding:2px 8px;font-size:.72rem;color:var(--muted)}
+.notification{position:fixed;bottom:20px;right:20px;background:#1a1a2e;border:1px solid var(--accent);border-radius:10px;padding:12px 18px;font-size:.85rem;z-index:300;animation:slideIn .3s ease;max-width:280px}
+.notification.hidden{display:none}
+@keyframes slideIn{from{transform:translateX(100px);opacity:0}to{transform:none;opacity:1}}
+.fusion-slot{background:#1a1a2e;border:2px dashed #333;border-radius:10px;padding:16px;text-align:center;min-height:80px;cursor:pointer;transition:border-color .15s}
+.fusion-slot:hover{border-color:var(--accent)}
+.fusion-slot.filled{border-color:var(--accent);border-style:solid}
+/* PACK ANIMATIONS */
+@keyframes packSpin{0%{transform:rotateY(0)}50%{transform:rotateY(180deg)}100%{transform:rotateY(360deg)}}
+@keyframes shake{0%,100%{transform:translate(0)}10%,30%,50%,70%,90%{transform:translate(-8px,0)}20%,40%,60%,80%{transform:translate(8px,0)}}
+@keyframes cosmicEntry{0%{opacity:0;transform:scale(0.3)}60%{transform:scale(1.1)}100%{opacity:1;transform:scale(1)}}
+@keyframes starPulse{0%,100%{opacity:0.3;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.pack-spinning{animation:packSpin 0.8s ease-in-out}
+.screen-shake{animation:shake 0.6s ease-in-out}
+.cosmic-card-reveal{animation:cosmicEntry 1.2s ease-out}
+/* QUANTITY SELECTOR */
+.qty-selector{display:flex;gap:4px;margin:8px 0;justify-content:center;flex-wrap:wrap}
+.qty-btn{background:#2a2a3a;color:var(--muted);border:1px solid #444;border-radius:6px;padding:4px 10px;font-size:.75rem;cursor:pointer;font-weight:700;transition:all .15s}
+.qty-btn:hover{background:#333;color:var(--text)}
+.qty-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pack-cooldown{color:var(--red);font-size:.75rem;margin-top:4px;font-weight:700}
+/* COSMIC REVEAL OVERLAY */
+#cosmicReveal{position:fixed;inset:0;background:#000;z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column}
+#cosmicReveal .stars-bg{position:absolute;inset:0;overflow:hidden}
+#cosmicReveal .star-dot{position:absolute;background:#fff;border-radius:50%;animation:starPulse 1.5s infinite}
+#cosmicReveal .cosmic-center{position:relative;z-index:2;text-align:center}
+/* ODDS PACK SECTION */
+.odds-pack{background:var(--card);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #2a2a3a}
+.odds-pack-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.odds-pack-title{font-weight:800;font-size:1rem}
+.odds-pack-collected{color:var(--muted);font-size:.78rem;margin-left:auto}
+.odds-card-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #222;font-size:.8rem}
+.odds-card-row:last-child{border-bottom:none}
+.odds-card-chance{color:var(--muted);margin-left:auto;font-size:.75rem}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- NOTIFICATION -->
+<div class="notification hidden" id="notif"></div>
+
+<!-- USERNAME MODAL -->
+<div class="modal-overlay" id="usernameModal">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🃏</div>
+    <h2 style="margin-bottom:6px">Welcome to Card.io</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Create an account or log in to save your progress and appear on the global leaderboard</p>
+    <input type="text" id="usernameInput" placeholder="Username..." maxlength="20" style="margin-bottom:8px;text-align:center;font-size:1rem"/>
+    <input type="password" id="passwordInput" placeholder="Password..." maxlength="30" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="setUsername()" style="width:100%">🚀 Login / Create Account</button>
+    <div style="margin-top:16px;border-top:1px solid #1a1a2e;padding-top:12px">
+      <input type="text" id="adminCodeInput" placeholder="· · ·" maxlength="10" 
+        style="width:100%;background:#0a0a0f;border:1px solid #1a1a2e;border-radius:6px;padding:6px;color:#333;font-size:.75rem;text-align:center;letter-spacing:.2em" 
+        oninput="if(this.value.trim()==='3713'){this.value='';openAdminPanel();}" 
+        autocomplete="off"/>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin:12px 0">
+      <div style="flex:1;height:1px;background:#333"></div>
+      <span style="color:#555;font-size:.75rem">or</span>
+      <div style="flex:1;height:1px;background:#333"></div>
+    </div>
+    <button onclick="signInWithGoogle()" style="width:100%;background:#fff;color:#333;border:none;border-radius:8px;padding:10px;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      <img src="https://www.google.com/favicon.ico" style="width:18px;height:18px"/> Sign in with Google
+    </button>
+    <p style="font-size:.72rem;color:var(--muted);margin-top:10px">New user? Just pick a username + password and your account is created automatically.</p>
+  </div>
+</div>
+
+<!-- INCOMING TRADE POPUP -->
+<div class="incoming-trade-popup hidden" id="incomingPopup" style="display:none">
+  <div style="font-size:2.5rem;margin-bottom:8px">🔄</div>
+  <h3 style="color:var(--accent2);margin-bottom:6px" id="popupTitle">Trade Request!</h3>
+  <p style="font-size:.82rem;color:var(--muted);margin-bottom:10px" id="popupDesc"></p>
+  <div id="popupCards" style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:10px"></div>
+  <div class="popup-btns">
+    <button class="popup-btn accept" onclick="acceptTradePopup()">✅ Accept</button>
+    <button class="popup-btn decline" onclick="declineTradePopup()">❌ Decline</button>
+  </div>
+</div>
+<div class="modal-overlay hidden" id="popupOverlay" onclick="declineTradePopup()" style="z-index:490;display:none"></div>
+
+<!-- TRADE ROOM -->
+<div class="trade-room-overlay hidden" id="tradeRoomOverlay" style="display:none">
+  <div class="trade-room">
+    <div class="trade-room-header">
+      <div style="font-size:2rem">🔄</div>
+      <h2>Live Trade Room</h2>
+      <p style="color:#888;font-size:.8rem;margin-top:4px" id="tradeRoomWith"></p>
+    </div>
+    
+    <!-- Trade sides -->
+    <div class="trade-room-sides">
+      <div class="trade-room-col my-side">
+        <h3 id="mySideLabel">👤 YOU</h3>
+        <div class="trade-room-cards" id="myTradeCards"></div>
+        <div style="margin-top:8px;font-size:.75rem;color:#888">Click your inventory to add:</div>
+        <div id="myTRInv" style="display:flex;flex-wrap:wrap;gap:4px;max-height:120px;overflow-y:auto;margin-top:6px"></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--accent2)">⇌</div>
+      <div class="trade-room-col their-side">
+        <h3 id="theirSideLabel">👥 THEM</h3>
+        <div class="trade-room-cards" id="theirTradeCards"><p style="color:#555;font-size:.75rem">Waiting for them to add cards...</p></div>
+      </div>
+    </div>
+
+    <div class="trade-status-bar" id="tradeStatusBar">Both players must click Ready to proceed</div>
+
+    <!-- Ready buttons -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button class="ready-btn not-ready" id="myReadyBtn" onclick="toggleReady()">⚡ Ready Up</button>
+      <button class="ready-btn not-ready" id="theirReadyBtn" disabled>Waiting...</button>
+    </div>
+
+    <!-- Final confirm (shown when both ready) -->
+    <div id="finalConfirm" style="display:none">
+      <div class="trade-countdown" id="tradeCountdown">⚡ Both ready! Confirming in 3...</div>
+      <div class="final-btns">
+        <button class="final-btn accept" onclick="confirmTrade()">✅ ACCEPT TRADE</button>
+        <button class="final-btn cancel" onclick="cancelTradeRoom()">❌ CANCEL</button>
+      </div>
+    </div>
+
+    <button class="btn-sm" onclick="cancelTradeRoom()" style="margin-top:12px;width:100%">🚪 Leave Trade Room</button>
+  </div>
+</div>
+
+<!-- GOOGLE USERNAME PICKER -->
+<div class="modal-overlay hidden" id="googlePickerModal" style="display:none;z-index:600">
+  <div class="modal" style="max-width:380px">
+    <div style="font-size:2.5rem;margin-bottom:8px">🎉</div>
+    <h2 style="margin-bottom:6px">One more thing!</h2>
+    <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Choose your in-game username. This is what others will see on the leaderboard and in trades.</p>
+    <input type="text" id="googleUsernameInput" placeholder="Your username..." maxlength="20" style="margin-bottom:12px;text-align:center;font-size:1rem"/>
+    <button class="btn" onclick="confirmGoogleUsername()" style="width:100%">✅ Set Username</button>
+  </div>
+</div>
+
+<!-- COSMIC REVEAL OVERLAY -->
+<div id="cosmicReveal" style="display:none;position:fixed;inset:0;background:#000;z-index:500;align-items:center;justify-content:center;flex-direction:column">
+  <div class="stars-bg" id="cosmicStars" style="position:absolute;inset:0;overflow:hidden"></div>
+  <div class="cosmic-center" id="cosmicCardDisplay" style="position:relative;z-index:2;text-align:center"></div>
+</div>
+
+<!-- PACK OPENING MODAL -->
+<div class="modal-overlay hidden" id="packModal">
+  <div class="modal">
+    <h2 id="modalTitle">Opening Pack...</h2>
+    <div id="modalCards"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn" onclick="closeModal()">✅ Keep Cards</button>
+      <button class="btn btn-red" onclick="sellAllPulled()">💰 Sell All</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="navbar">
+  <div class="nav-logo">🃏 Card.io</div>
+  <button class="nb active" id="nav-shop" onclick="show('shop')">🏪 Shop</button>
+  <button class="nb" id="nav-inventory" onclick="show('inventory')">🎒 Inventory</button>
+  <button class="nb" id="nav-auction" onclick="show('auction')">⏱ Auction</button>
+  <button class="nb" id="nav-trade" onclick="show('trade')">🔄 Trade<span id="tradeNavDot" class="trade-notif-dot" style="display:none"></span></button>
+  <button class="nb" id="nav-fuse" onclick="show('fuse')">⚗️ Fuse</button>
+  <button class="nb" id="nav-achieve" onclick="show('achieve')">🏆 Achieve</button>
+  <button class="nb" id="nav-leaderboard" onclick="show('leaderboard')">📊 Rankings</button>
+  <button class="nb" id="nav-odds" onclick="show('odds')">🎲 Odds</button>
+  <button class="nb" id="nav-trademachine" onclick="show('trademachine')">🔄 Trade Machine</button>
+  <div class="coins-badge" style="margin-left:auto;flex-shrink:0">💰 <span id="coinDisplay">0</span></div>
+</nav>
+
+<!-- Fixed account button - always visible top right -->
+<button onclick="showAccountMenu()" id="accountMenuBtn" style="position:fixed;top:48px;right:12px;z-index:150;background:#2a2a3a;border:1px solid #555;border-radius:8px;padding:7px 12px;color:#eee;cursor:pointer;font-size:.82rem;font-weight:600">👤</button>
+
+<!-- Account menu (outside nav so it isn't clipped) -->
+<div id="accountMenu" style="display:none;position:fixed;top:52px;right:12px;background:#1a1a2e;border:1px solid #444;border-radius:10px;padding:10px;z-index:999;min-width:180px;box-shadow:0 4px 24px rgba(0,0,0,.8)">
+  <div id="accountMenuName" style="color:#888;font-size:.75rem;padding:4px 8px;margin-bottom:6px;border-bottom:1px solid #333"></div>
+  <button onclick="logout()" style="width:100%;background:none;border:none;color:#eee;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem" onmouseover="this.style.background='#2a2a3a'" onmouseout="this.style.background='none'">🚪 Log Out</button>
+  <button onclick="deleteAccount()" style="width:100%;background:none;border:none;color:#ef4444;padding:10px 8px;text-align:left;cursor:pointer;border-radius:6px;font-size:.88rem;margin-top:2px" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='none'">🗑️ Delete Account</button>
+</div>
+
+<!-- SHOP -->
+<div class="page active" id="page-shop">
+  <div class="stats-bar">
+    <div class="stat-c"><div class="stat-n" id="stat-cards">0</div><div class="stat-l">Cards</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-packs">0</div><div class="stat-l">Packs Opened</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-mythics">0</div><div class="stat-l">Mythics</div></div>
+    <div class="stat-c"><div class="stat-n" id="stat-worth">0</div><div class="stat-l">Collection Value</div></div>
+  </div>
+  <div class="section-title">🗓 Daily Challenges</div>
+  <div id="dailyChallenges"></div>
+  <div class="section-divider"></div>
+  <div class="section-title">🏪 Card Packs</div>
+  <div class="grid grid-3" id="packGrid"></div>
+  <div class="section-divider"></div>
+  <div class="section-title" style="font-size:.95rem">⚡ Recent Activity</div>
+  <div class="recent-activity-box" id="recentActivity"><p class="empty" style="padding:6px">No activity yet — open a pack!</p></div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page" id="page-inventory">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <div class="section-title" style="margin:0">🎒 Your Collection</div>
+    <button class="btn-sm" onclick="sortInv('val')">⇅ Value</button>
+    <button class="btn-sm" onclick="sortInv('rarity')">⇅ Rarity</button>
+    <button class="btn-sm" onclick="sortInv('type')">⇅ Type</button>
+  </div>
+  <div class="bulk-sell-row">
+    <button class="bulk-sell-btn" onclick="bulkSell('common')">🗑️ Sell Commons</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('rare')">🗑️ Sell Rares</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('epic')">🗑️ Sell Epics</button>
+    <button class="bulk-sell-btn" onclick="bulkSell('legendary')">🗑️ Sell Legendaries</button>
+    <button class="bulk-sell-btn" style="color:#f5c518;border-color:#f5c518" onclick="bulkSell('all')">💰 Sell All</button>
+  </div>
+  <div class="inv-filter-bar">
+    <button class="inv-filter-btn active" id="invFilter-all" onclick="setInvFilter('all')">All</button>
+    <button class="inv-filter-btn" id="invFilter-common" onclick="setInvFilter('common')">Common</button>
+    <button class="inv-filter-btn" id="invFilter-rare" onclick="setInvFilter('rare')">Rare</button>
+    <button class="inv-filter-btn" id="invFilter-epic" onclick="setInvFilter('epic')">Epic</button>
+    <button class="inv-filter-btn" id="invFilter-legendary" onclick="setInvFilter('legendary')">Legendary</button>
+    <button class="inv-filter-btn" id="invFilter-mythic" onclick="setInvFilter('mythic')">Mythic</button>
+    <button class="inv-filter-btn" id="invFilter-god" onclick="setInvFilter('god')">God</button>
+    <button class="inv-filter-btn" id="invFilter-cosmic" onclick="setInvFilter('cosmic')">Cosmic</button>
+    <input type="text" class="inv-search" id="invSearch" placeholder="🔍 Search by name..." oninput="renderInv()"/>
+  </div>
+  <div class="grid grid-2" id="invGrid"></div>
+</div>
+
+<!-- AUCTION -->
+<div class="page" id="page-auction">
+  <div class="section-title">⏱ Live Auction House</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Bid on rare cards before time runs out. AI bidders will compete against you!</p>
+  <div id="auctionList"></div>
+</div>
+
+<!-- TRADE -->
+<div class="page" id="page-trade">
+  <!-- Tab switcher -->
+  <div style="display:flex;gap:0;margin-bottom:16px;background:#111;border-radius:10px;padding:4px">
+    <button id="tradeTabInbox" onclick="switchTradeTab('inbox')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:var(--accent);color:#fff;transition:all .15s">📥 Inbox</button>
+    <button id="tradeTabSend" onclick="switchTradeTab('send')" style="flex:1;padding:9px;border:none;border-radius:7px;font-weight:700;font-size:.85rem;cursor:pointer;background:none;color:#888;transition:all .15s">📤 Send Trade</button>
+  </div>
+
+  <!-- INBOX TAB -->
+  <div id="tradeInboxTab">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:.85rem;color:var(--muted)">Incoming requests from other players</div>
+      <button class="btn-sm" onclick="checkIncomingTrades()">🔄 Refresh</button>
+    </div>
+    <div class="trade-inbox" id="incomingTrades"><p class="empty">No incoming trades — check back later</p></div>
+  </div>
+
+  <!-- SEND TAB -->
+  <div id="tradeSendTab" style="display:none">
+    <div class="send-trade-form">
+      <h3>📤 Send a Trade Request</h3>
+      <div style="margin-bottom:12px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Send to username:</label>
+        <input type="text" id="tradeTargetUser" placeholder="Their exact username..." style="font-size:.9rem"/>
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">Your offer: <span style="color:#888">(tap cards below)</span></label>
+        <div class="staged-row" id="tradeOfferStaged"><span style="color:#555;font-size:.75rem;align-self:center">Nothing staged yet</span></div>
+        <div class="offer-grid" id="tradeOfferInv"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="color:var(--muted);font-size:.78rem;display:block;margin-bottom:5px">What you want back:</label>
+        <textarea id="tradeWantInput" placeholder="e.g. Any Mythic card, or specific card name..." style="width:100%;background:#2a2a3a;border:1px solid #444;border-radius:8px;padding:8px 12px;color:var(--text);font-size:.85rem;min-height:70px;resize:none"></textarea>
+      </div>
+      <button class="btn" onclick="sendTradeRequest()" style="width:100%">📨 Send Trade Request</button>
+      <div id="tradeSendMsg" style="margin-top:8px;font-size:.82rem;text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FUSE -->
+<div class="page" id="page-fuse">
+  <div class="section-title">⚗️ Card Fusion Lab</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Combine 3 cards of the same rarity to fuse them into a higher rarity card!</p>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div class="fusion-slot" id="fslot-0" onclick="openFuseSelect(0)"><div style="color:var(--muted);font-size:.8rem">+ Card 1</div></div>
+    <div class="fusion-slot" id="fslot-1" onclick="openFuseSelect(1)"><div style="color:var(--muted);font-size:.8rem">+ Card 2</div></div>
+    <div class="fusion-slot" id="fslot-2" onclick="openFuseSelect(2)"><div style="color:var(--muted);font-size:.8rem">+ Card 3</div></div>
+    <div style="font-size:1.5rem">→</div>
+    <div class="fusion-slot" id="fslot-result" style="pointer-events:none;border-color:#444"><div style="color:var(--muted);font-size:.8rem">Result</div></div>
+  </div>
+  <button class="btn" onclick="executeFuse()" id="fuseBtn" disabled>⚗️ Fuse Cards</button>
+  <div id="fuseMsg" style="margin-top:12px;font-size:.85rem"></div>
+  <div style="margin-top:16px;font-size:.8rem;color:var(--muted)">
+    3 Commons → 1 Rare &nbsp;|&nbsp; 3 Rares → 1 Epic &nbsp;|&nbsp; 3 Epics → 1 Legendary &nbsp;|&nbsp; 3 Legendaries → 1 Mythic
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS -->
+<div class="page" id="page-achieve">
+  <div class="section-title">🏆 Achievements</div>
+  <div id="achieveList"></div>
+</div>
+
+<!-- ODDS -->
+<div class="page" id="page-odds">
+  <div class="section-title">🎲 Pull Rates & Card Odds</div>
+  <div class="card-box" style="margin-bottom:16px">
+    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+      <thead><tr style="border-bottom:1px solid #333">
+        <th style="text-align:left;padding:8px;color:var(--muted)">Rarity</th>
+        <th style="text-align:center;padding:8px;color:var(--muted)">Pull Rate</th>
+        <th style="text-align:right;padding:8px;color:var(--muted)">Coin Value</th>
+      </tr></thead>
+      <tbody>
+        <tr><td style="padding:8px"><span class="rarity-badge r-common" style="position:static">COMMON</span></td><td style="text-align:center;padding:8px">50%</td><td style="text-align:right;padding:8px;color:var(--muted)">4–20</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-rare" style="position:static">RARE</span></td><td style="text-align:center;padding:8px">26%</td><td style="text-align:right;padding:8px;color:#60a5fa">60–120</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-epic" style="position:static">EPIC</span></td><td style="text-align:center;padding:8px">13%</td><td style="text-align:right;padding:8px;color:#a78bfa">200–340</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-legendary" style="position:static">LEGENDARY</span></td><td style="text-align:center;padding:8px">7%</td><td style="text-align:right;padding:8px;color:#f59e0b">380–600</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-mythic" style="position:static">MYTHIC</span></td><td style="text-align:center;padding:8px">3%</td><td style="text-align:right;padding:8px;color:#f87171">800–1200</td></tr>
+        <tr><td style="padding:8px"><span class="rarity-badge r-god" style="position:static">GOD-TIER</span></td><td style="text-align:center;padding:8px">0.9%</td><td style="text-align:right;padding:8px;color:#e040fb">2300–3000</td></tr>
+        <tr style="background:#001a4a22"><td style="padding:8px"><span class="rarity-badge r-cosmic" style="position:static">✦ COSMIC</span></td><td style="text-align:center;padding:8px;color:#00e5ff">0.1%</td><td style="text-align:right;padding:8px;color:#00e5ff">PRICELESS</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="oddsPackList"></div>
+  <p style="font-size:.78rem;color:var(--muted);margin-top:12px">⚠️ The Cosmic card is exclusive to The ONE Pack. If you pull it, you're the luckiest player alive.</p>
+</div>
+
+<!-- TRADE MACHINE PAGE -->
+<div class="page" id="page-trademachine">
+  <div class="section-title">🔄 Card Trade Machine</div>
+  <p style="color:var(--muted);font-size:.83rem;margin-bottom:16px">Propose card-for-card trades with AI collectors. They'll accept if the value is fair!</p>
+  
+  <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:start;margin-bottom:16px">
+    <!-- YOUR SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Offer</div>
+      <div id="tmSendList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from your inventory below</p>
+      </div>
+      <div style="color:#aaa;font-size:.75rem;margin-bottom:6px">Your inventory:</div>
+      <div id="tmInvGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+    
+    <div style="font-size:2rem;color:var(--accent2);padding-top:28px;text-align:center">⇌</div>
+    
+    <!-- AI SIDE -->
+    <div>
+      <div style="font-weight:700;color:#aaa;font-size:.85rem;margin-bottom:8px;text-transform:uppercase">You Receive</div>
+      <div id="tmRecvList" style="min-height:60px;background:#1a1a2e;border-radius:8px;padding:10px;border:1px dashed #444;margin-bottom:10px">
+        <p class="empty">Click cards from AI collection below</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="color:#aaa;font-size:.75rem">AI Collector:</div>
+        <button class="btn-sm" style="font-size:.72rem;padding:4px 10px" onclick="switchAICollector()">🔄 Switch</button>
+      </div>
+      <div id="tmAIGrid" style="max-height:240px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px"></div>
+    </div>
+  </div>
+  
+  <!-- Trade eval -->
+  <div id="tmEval" style="background:#111;border-radius:10px;padding:12px;margin-bottom:14px;display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div style="font-size:.85rem">Your value: <strong id="tmYourVal">0</strong></div>
+      <div style="font-size:.85rem">Their value: <strong id="tmTheirVal">0</strong></div>
+      <div id="tmVerdict" style="font-size:.85rem;font-weight:700"></div>
+    </div>
+    <div style="background:#222;border-radius:6px;height:10px;margin-top:8px;overflow:hidden">
+      <div id="tmBar" style="height:10px;border-radius:6px;transition:width .3s,background .3s"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button class="btn" id="tmExecuteBtn" onclick="executeTM()" disabled>✅ Propose Trade</button>
+    <button class="btn-sm" onclick="clearTM()">❌ Clear</button>
+  </div>
+  <div id="tmMsg" style="margin-top:10px;font-size:.85rem"></div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="page" id="page-leaderboard">
+  <div class="section-title">📊 Global Rankings</div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <button class="btn-sm" onclick="renderLB('coins')">💰 By Coins</button>
+    <button class="btn-sm" onclick="renderLB('cards')">🃏 By Cards</button>
+    <button class="btn-sm" onclick="renderLB('mythics')">🔥 By Mythics</button>
+  </div>
+  <div id="lbList"></div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const PACKS = [
+  {id:'street',name:'Street Pack',icon:'🏙️',desc:'Urban legends, streetball, hustle cards',price:100,
+   cards:[
+    {name:'Street Legend',icon:'🏀',type:'street',rarity:'legendary',val:420},
+    {name:'Blacktop King',icon:'👑',type:'street',rarity:'epic',val:270},
+    {name:'Corner Hustler',icon:'💼',type:'street',rarity:'rare',val:90},
+    {name:'Graffiti Ghost',icon:'🎨',type:'street',rarity:'epic',val:240},
+    {name:'Subway Rider',icon:'🚇',type:'street',rarity:'common',val:12},
+    {name:'Street Vendor',icon:'🌮',type:'street',rarity:'common',val:9},
+    {name:'City Phantom',icon:'👤',type:'street',rarity:'rare',val:80},
+    {name:'Urban Prophet',icon:'📢',type:'street',rarity:'mythic',val:870},
+    {name:'Block Boss',icon:'🏢',type:'street',rarity:'legendary',val:400},
+    {name:'The Professor',icon:'⛹️',type:'street',rarity:'god',val:2400},
+    {name:'Concrete Spark',icon:'⚡',type:'street',rarity:'rare',val:75},
+  ]},
+  {id:'ocean',name:'Ocean Pack',icon:'🌊',desc:'Sea creatures, storms, deep sea mysteries',price:120,
+   cards:[
+    {name:'Kraken',icon:'🐙',type:'ocean',rarity:'mythic',val:950},
+    {name:'Great White',icon:'🦈',type:'ocean',rarity:'legendary',val:440},
+    {name:'Leviathan',icon:'🌊',type:'ocean',rarity:'god',val:2500},
+    {name:'Storm Caller',icon:'⛈️',type:'ocean',rarity:'legendary',val:410},
+    {name:'Bioluminescent Eel',icon:'🐟',type:'ocean',rarity:'epic',val:250},
+    {name:'Sea Witch',icon:'🧜‍♀️',type:'ocean',rarity:'epic',val:230},
+    {name:'Tide Shifter',icon:'🌙',type:'ocean',rarity:'rare',val:85},
+    {name:'Reef Fish',icon:'🐠',type:'ocean',rarity:'common',val:10},
+    {name:'Sand Dollar',icon:'🪙',type:'ocean',rarity:'common',val:7},
+    {name:'Whale Rider',icon:'🐋',type:'ocean',rarity:'rare',val:78},
+    {name:'Abyss Dweller',icon:'👁️',type:'ocean',rarity:'mythic',val:920},
+  ]},
+  {id:'warrior',name:'Warrior Pack',icon:'⚔️',desc:'Samurai, knights, ancient warriors',price:150,
+   cards:[
+    {name:'Ronin Master',icon:'🗡️',type:'warrior',rarity:'legendary',val:480},
+    {name:'Spartan Elite',icon:'🛡️',type:'warrior',rarity:'epic',val:300},
+    {name:'Viking Berserker',icon:'🪓',type:'warrior',rarity:'epic',val:280},
+    {name:'Shadow Samurai',icon:'⚔️',type:'warrior',rarity:'mythic',val:1000},
+    {name:'Crusader Knight',icon:'✝️',type:'warrior',rarity:'legendary',val:450},
+    {name:'Ninja Assassin',icon:'🥷',type:'warrior',rarity:'rare',val:100},
+    {name:'Foot Soldier',icon:'🪖',type:'warrior',rarity:'common',val:14},
+    {name:'Iron Fist',icon:'🥊',type:'warrior',rarity:'rare',val:88},
+    {name:'War General',icon:'🎖️',type:'warrior',rarity:'legendary',val:460},
+    {name:'Ancient Warlord',icon:'👺',type:'warrior',rarity:'god',val:2600},
+    {name:'Squire',icon:'📜',type:'warrior',rarity:'common',val:11},
+  ]},
+  {id:'galaxy',name:'Galaxy Pack',icon:'🌌',desc:'Stars, nebulas, cosmic phenomena',price:200,
+   cards:[
+    {name:'Black Hole',icon:'🕳️',type:'galaxy',rarity:'mythic',val:990},
+    {name:'Supernova',icon:'💥',type:'galaxy',rarity:'mythic',val:960},
+    {name:'Nebula Weaver',icon:'🌌',type:'galaxy',rarity:'legendary',val:520},
+    {name:'Pulsar',icon:'⭐',type:'galaxy',rarity:'epic',val:270},
+    {name:'Dark Matter',icon:'🌑',type:'galaxy',rarity:'epic',val:250},
+    {name:'Comet Rider',icon:'☄️',type:'galaxy',rarity:'rare',val:95},
+    {name:'Star Dust',icon:'✨',type:'galaxy',rarity:'common',val:10},
+    {name:'Dwarf Star',icon:'🌟',type:'galaxy',rarity:'rare',val:80},
+    {name:'Quasar God',icon:'🌀',type:'galaxy',rarity:'god',val:2700},
+    {name:'Andromeda Lord',icon:'🔭',type:'galaxy',rarity:'legendary',val:500},
+    {name:'Space Rock',icon:'🪐',type:'galaxy',rarity:'common',val:8},
+  ]},
+  {id:'royalty',name:'Royalty Pack',icon:'👑',desc:'Kings, queens, empires',price:250,
+   cards:[
+    {name:'Emperor Eternal',icon:'👑',type:'royalty',rarity:'god',val:2800},
+    {name:'Queen of Swords',icon:'🗡️',type:'royalty',rarity:'mythic',val:1050},
+    {name:'Crimson King',icon:'♟️',type:'royalty',rarity:'legendary',val:560},
+    {name:'Noble Duchess',icon:'👸',type:'royalty',rarity:'legendary',val:530},
+    {name:'Court Mage',icon:'🧙',type:'royalty',rarity:'epic',val:310},
+    {name:'Royal Guard',icon:'⚜️',type:'royalty',rarity:'epic',val:290},
+    {name:'Jester',icon:'🃏',type:'royalty',rarity:'rare',val:105},
+    {name:'Peasant',icon:'🧑‍🌾',type:'royalty',rarity:'common',val:12},
+    {name:'Chamberlain',icon:'📜',type:'royalty',rarity:'rare',val:92},
+    {name:'Throne Keeper',icon:'🏰',type:'royalty',rarity:'legendary',val:510},
+    {name:'Tax Collector',icon:'💰',type:'royalty',rarity:'common',val:9},
+  ]},
+  {id:'shadow',name:'Shadow Pack',icon:'🖤',desc:'Assassins, ninjas, dark arts',price:300,
+   cards:[
+    {name:'Void Reaper',icon:'💀',type:'shadow',rarity:'god',val:2900},
+    {name:'Shadow Oracle',icon:'🔮',type:'shadow',rarity:'mythic',val:1100},
+    {name:'Phantom Blade',icon:'🗡️',type:'shadow',rarity:'legendary',val:570},
+    {name:'Dark Sorcerer',icon:'😈',type:'shadow',rarity:'legendary',val:540},
+    {name:'Night Stalker',icon:'🦇',type:'shadow',rarity:'epic',val:320},
+    {name:'Shade Walker',icon:'👥',type:'shadow',rarity:'epic',val:295},
+    {name:'Shadow Rogue',icon:'🥷',type:'shadow',rarity:'rare',val:110},
+    {name:'Dark Whisper',icon:'🌑',type:'shadow',rarity:'common',val:18},
+    {name:'Cursed Dagger',icon:'🔪',type:'shadow',rarity:'rare',val:95},
+    {name:'Abyss Eye',icon:'👁️',type:'shadow',rarity:'mythic',val:980},
+    {name:'Dark Fragment',icon:'💠',type:'shadow',rarity:'common',val:14},
+  ]},
+  {id:'titan',name:'Titan Pack',icon:'💥',desc:'Gods, giants, mythological titans',price:350,
+   cards:[
+    {name:'Zeus Almighty',icon:'⚡',type:'titan',rarity:'god',val:3000},
+    {name:'Titan Cronus',icon:'⏳',type:'titan',rarity:'mythic',val:1200},
+    {name:'Hercules',icon:'💪',type:'titan',rarity:'legendary',val:580},
+    {name:'Atlas',icon:'🌍',type:'titan',rarity:'legendary',val:555},
+    {name:'Cyclops',icon:'👁️',type:'titan',rarity:'epic',val:340},
+    {name:'Minotaur',icon:'🐂',type:'titan',rarity:'epic',val:315},
+    {name:'Centaur',icon:'🏹',type:'titan',rarity:'rare',val:115},
+    {name:'Stone Giant',icon:'🪨',type:'titan',rarity:'rare',val:100},
+    {name:'Mountain Troll',icon:'👹',type:'titan',rarity:'common',val:20},
+    {name:'Titan Shard',icon:'🔷',type:'titan',rarity:'common',val:15},
+    {name:'Prometheus',icon:'🔥',type:'titan',rarity:'legendary',val:530},
+  ]},
+  {id:'prismatic',name:'Prismatic Pack',icon:'🌈',desc:'Ultra rare, best god tier odds',price:500,
+   cards:[
+    {name:'Diamond God',icon:'💎',type:'prismatic',rarity:'god',val:3000},
+    {name:'Golden Phoenix',icon:'🌟',type:'prismatic',rarity:'god',val:2950},
+    {name:'Prismatic Dragon',icon:'🐉',type:'prismatic',rarity:'mythic',val:1200},
+    {name:'Rainbow Knight',icon:'🌈',type:'prismatic',rarity:'legendary',val:600},
+    {name:'Crystal Queen',icon:'💠',type:'prismatic',rarity:'legendary',val:580},
+    {name:'Spectrum Sage',icon:'🔯',type:'prismatic',rarity:'epic',val:340},
+    {name:'Holo Warrior',icon:'✨',type:'prismatic',rarity:'epic',val:320},
+    {name:'Prism Shard',icon:'🔮',type:'prismatic',rarity:'rare',val:120},
+    {name:'Color Wisp',icon:'🫧',type:'prismatic',rarity:'common',val:22},
+    {name:'Arc Fragment',icon:'🎇',type:'prismatic',rarity:'rare',val:112},
+    {name:'Gold Dust',icon:'🌠',type:'prismatic',rarity:'common',val:18},
+  ]},
+  {id:'theone',name:'The ONE Pack',icon:'☄️',desc:'Contains THE ONLY COSMIC CARD in the game',price:1000,
+   cards:[
+    {name:'THE COSMIC ONE',icon:'✦',type:'theone',rarity:'cosmic',val:99999},
+    {name:'Singularity God',icon:'🌀',type:'theone',rarity:'god',val:2900},
+    {name:'Infinity Nexus',icon:'♾️',type:'theone',rarity:'god',val:2800},
+    {name:'Omega Titan',icon:'💥',type:'theone',rarity:'mythic',val:1300},
+    {name:'Alpha Prime',icon:'🔱',type:'theone',rarity:'mythic',val:1250},
+    {name:'Eternal Flame',icon:'🔥',type:'theone',rarity:'legendary',val:650},
+    {name:'Void Fragment',icon:'⬛',type:'theone',rarity:'legendary',val:610},
+    {name:'Time Shard',icon:'⏳',type:'theone',rarity:'epic',val:360},
+    {name:'Space Rune',icon:'🔯',type:'theone',rarity:'epic',val:340},
+    {name:'Starborn',icon:'⭐',type:'theone',rarity:'rare',val:130},
+    {name:'Cosmic Dust',icon:'🌌',type:'theone',rarity:'common',val:25},
+  ]},
+];
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────────
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+function getAudio(){if(!audioCtx)audioCtx=new AudioCtx();return audioCtx;}
+
+function playPackOpen(){
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator();const g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.type='sine';o.frequency.setValueAtTime(200,ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(800,ctx.currentTime+0.3);
+    g.gain.setValueAtTime(0.3,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.4);
+    o.start();o.stop(ctx.currentTime+0.4);
+  }catch(e){}
+}
+
+function playCardFlip(){
+  try{
+    const ctx=getAudio();
+    const buf=ctx.createBuffer(1,ctx.sampleRate*0.1,ctx.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.exp(-i/(ctx.sampleRate*0.05));
+    const s=ctx.createBufferSource();s.buffer=buf;
+    const g=ctx.createGain();g.gain.value=0.2;
+    s.connect(g);g.connect(ctx.destination);s.start();
+  }catch(e){}
+}
+
+function playGodPull(){
+  try{
+    const ctx=getAudio();
+    [60,80,100].forEach((freq,i)=>{
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.15,ctx.currentTime+i*0.1);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+1.5);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+1.5);
+    });
+  }catch(e){}
+}
+
+function playCosmicPull(){
+  try{
+    const ctx=getAudio();
+    for(let i=0;i<5;i++){
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type=i%2?'sine':'square';
+      o.frequency.value=20+i*15;
+      g.gain.setValueAtTime(0.2,ctx.currentTime+i*0.2);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+3);
+      o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+3);
+    }
+    const o2=ctx.createOscillator();const g2=ctx.createGain();
+    o2.connect(g2);g2.connect(ctx.destination);
+    o2.type='sine';o2.frequency.setValueAtTime(2000,ctx.currentTime+0.5);
+    o2.frequency.exponentialRampToValueAtTime(4000,ctx.currentTime+2);
+    g2.gain.setValueAtTime(0.1,ctx.currentTime+0.5);g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+2);
+    o2.start(ctx.currentTime+0.5);o2.stop(ctx.currentTime+2);
+  }catch(e){}
+}
+
+const RARITY_ORDER = ['common','rare','epic','legendary','mythic','god','cosmic'];
+const RARITY_RATES = {common:.50,rare:.26,epic:.13,legendary:.07,mythic:.03,god:.009,cosmic:.001};
+const RARITY_UP = {common:'rare',rare:'epic',epic:'legendary',legendary:'mythic',mythic:'god'};
+
+const ACHIEVEMENTS = [
+  {id:'first_pull',name:'First Pull',desc:'Open your first pack',icon:'🎉',reward:50,check:s=>s.packsOpened>=1},
+  {id:'collector10',name:'Collector',desc:'Own 10 cards',icon:'🃏',reward:100,check:s=>s.inv.length>=10},
+  {id:'collector50',name:'Hoarder',desc:'Own 50 cards',icon:'📦',reward:300,check:s=>s.inv.length>=50},
+  {id:'rich',name:'Getting Rich',desc:'Earn 1000 coins',icon:'💰',reward:200,check:s=>s.totalEarned>=1000},
+  {id:'big_spender',name:'Big Spender',desc:'Spend 1000 coins on packs',icon:'💸',reward:250,check:s=>s.totalSpent>=1000},
+  {id:'first_mythic',name:'Mythic Hunter',desc:'Pull your first Mythic',icon:'🔥',reward:500,check:s=>s.inv.some(c=>c.rarity==='mythic')},
+  {id:'three_mythics',name:'Mythic Collector',desc:'Own 3 Mythics',icon:'👑',reward:1000,check:s=>s.inv.filter(c=>c.rarity==='mythic').length>=3},
+  {id:'first_fuse',name:'Alchemist',desc:'Fuse 3 cards',icon:'⚗️',reward:150,check:s=>s.fusions>=1},
+  {id:'trade_master',name:'Trade Master',desc:'Complete 5 trades',icon:'🔄',reward:200,check:s=>s.trades>=5},
+  {id:'auction_win',name:'Auction Winner',desc:'Win your first auction',icon:'🏆',reward:300,check:s=>s.auctionWins>=1},
+  {id:'daily5',name:'Daily Player',desc:'Complete 5 daily challenges',icon:'📅',reward:400,check:s=>s.dailiesCompleted>=5},
+  {id:'god_card',name:'God Touched',desc:'Pull a God-Tier card',icon:'👁️',reward:2000,check:s=>s.inv.some(c=>c.rarity==='god')},
+  {id:'cosmic',name:'THE ONE',desc:'Pull the Cosmic card',icon:'✦',reward:10000,check:s=>s.inv.some(c=>c.rarity==='cosmic')},
+  {id:'fuse_god',name:'Ascension',desc:'Fuse cards to reach God-Tier',icon:'⚗️',reward:3000,check:s=>s.fusions>=1&&s.inv.some(c=>c.rarity==='god')},
+  {id:'all_packs',name:'Pack Explorer',desc:'Open every pack type',icon:'🗺️',reward:500,check:s=>Object.keys(s.packsOpenedByType||{}).length>=6},
+];
+
+// Leaderboard uses real players only
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let G = {
+  username:'', coins:750, inv:[], packsOpened:0, totalEarned:0, totalSpent:0,
+  fusions:0, trades:0, auctionWins:0, dailiesCompleted:0, sellCount:0,
+  packsOpenedByType:{}, stagedCards:[], lastDaily:null,
+  auctions:[], dailies:[], achDone:[], pendingPulled:[],
+  packCooldowns:{}, recentActivity:[]
+};
+let packQuantities = {};
+// ── FIREBASE SETUP ───────────────────────────────────────────────────────────
+const firebaseConfig = {
+  databaseURL: "https://cardio-game-3713-default-rtdb.firebaseio.com",
+  apiKey: "AIzaSyDkw-xjR0eAkCPR3BRQyKk0Rnusu3pbEmw",
+  authDomain: "cardio-game-3713.firebaseapp.com",
+  projectId: "cardio-game-3713"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+function saveLB(){
+  if(!G.username)return;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  const entry = {
+    name:G.username,coins:G.coins,cards:G.inv.length,
+    mythics:G.inv.filter(c=>c.rarity==='mythic').length,
+    gods:G.inv.filter(c=>c.rarity==='god').length,
+    cosmic:G.inv.some(c=>c.rarity==='cosmic')?1:0,
+    updated:Date.now()
+  };
+  // Update leaderboard (no password in public data)
+  db.ref('leaderboard/'+safeKey).set(entry).catch(()=>{});
+  // Backup full save to cloud (includes password hash)
+  db.ref('saves/'+safeKey).set({...G}).catch(()=>{});
+}
+
+function getLB(){return [];} // not used anymore - Firebase handles it
+const KEY='cardio_v2';
+const save=()=>{localStorage.setItem(KEY,JSON.stringify(G));saveLB();};
+const load=()=>{try{const r=localStorage.getItem(KEY);if(r)G=JSON.parse(r);}catch(e){}};
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+// ── ADMIN PANEL ───────────────────────────────────────────────────────────────
+function openAdminPanel(){
+  // If already in game, just open the panel
+  const modal=document.getElementById('usernameModal');
+  if(modal&&(modal.classList.contains('hidden')||modal.style.display==='none')){
+    const o=document.getElementById('adminOverlay');
+    if(o){o.style.display='flex';}
+    return;
+  }
+  // Login as treyandis and enter game
+  G={username:'treyandis',passHash:'admin3713',coins:99999,inv:[],packsOpened:0,
+    totalEarned:0,totalSpent:0,fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,
+    sellCount:0,packsOpenedByType:{},packCooldowns:{},stagedCards:[],lastDaily:null,auctions:[],
+    dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+  // Try loading existing save silently
+  db.ref('saves/treyandis').once('value').then(snap=>{
+    const cs=snap.val();
+    if(cs&&cs.username==='treyandis'){G=cs;}
+    save();
+  }).catch(()=>{save();});
+  // Close login modal
+  if(modal){modal.classList.add('hidden');modal.style.display='none';}
+  // Start game
+  startGame();
+  // Add floating admin button
+  setTimeout(()=>{
+    if(!document.getElementById('adminFloatBtn')){
+      const btn=document.createElement('button');
+      btn.id='adminFloatBtn';
+      btn.innerHTML='⚙️';
+      btn.title='Admin Panel';
+      btn.onclick=()=>{const o=document.getElementById('adminOverlay');if(o)o.style.display='flex';};
+      btn.style.cssText='position:fixed;bottom:16px;right:16px;z-index:400;background:#f5c518;color:#000;border:none;border-radius:50%;width:44px;height:44px;font-size:1.1rem;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center';
+      document.body.appendChild(btn);
+    }
+    const o=document.getElementById('adminOverlay');
+    if(o){o.style.display='flex';}
+    notify('👑 Admin mode active');
+  },300);
+}
+
+function adminDo(action){
+  const msg=document.getElementById('adminMsg');
+  const ulist=document.getElementById('adminUserList');
+  if(!msg)return;
+  msg.innerHTML='<span style="color:#888">⏳ Working...</span>';
+  if(ulist) ulist.innerHTML='';
+
+  if(action==='wipe'){
+    if(!confirm('WIPE ALL USERS permanently?'))return;
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
+    Promise.all([
+      db.ref('leaderboard').remove(),
+      db.ref('saves').remove(),
+      db.ref('trades').remove(),
+      db.ref('traderooms').remove(),
+      db.ref('notifications').remove(),
+      db.ref('tradenotifs').remove()
+    ]).then(()=>{
+      msg.innerHTML='<span style="color:#10b981">✅ All users wiped!</span>';
+    }).catch(e=>{
+      msg.innerHTML='<span style="color:#ef4444">❌ Error: '+e.message+'</span>';
+    });
+  }
+  else if(action==='coins'){
+    G.coins+=99999;
+    G.totalEarned+=99999;
+    save();
+    if(typeof updateCoins==='function')updateCoins();
+    if(typeof renderStats==='function')renderStats();
+    msg.innerHTML='<span style="color:#f5c518">💰 +99999 coins added! Total: '+G.coins.toLocaleString()+'</span>';
+  }
+  else if(action==='allcards'){
+    try{
+      if(!Array.isArray(G.inv))G.inv=[];
+      const allPacks=window.PACKS||PACKS;
+      let added=0;
+      allPacks.forEach(function(p){
+        (p.cards||[]).forEach(function(c){
+          G.inv.push(Object.assign({},c,{id:Date.now()+Math.random()+added}));
+          added++;
+        });
+      });
+      save();
+      if(window.renderInv)renderInv();
+      if(window.renderStats)renderStats();
+      if(window.updateCoins)updateCoins();
+      msg.innerHTML='<span style="color:#a855f7">🃏 Added '+added+' cards! Inventory: '+G.inv.length+'</span>';
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ allcards error: '+e.message+'</span>';}
+  }
+  else if(action==='cosmic'){
+    try{
+      if(!Array.isArray(G.inv))G.inv=[];
+      const allPacks=window.PACKS||PACKS;
+      let cosmicCard=null;
+      allPacks.forEach(function(p){
+        (p.cards||[]).forEach(function(c){
+          if(c.rarity==='cosmic')cosmicCard=c;
+        });
+      });
+      if(cosmicCard){
+        G.inv.push(Object.assign({},cosmicCard,{id:Date.now()}));
+        save();
+        if(window.renderInv)renderInv();
+        if(window.renderStats)renderStats();
+        msg.innerHTML='<span style="color:#00e5ff">✦ Cosmic card added to your inventory!</span>';
+      } else {
+        msg.innerHTML='<span style="color:#ef4444">❌ No cosmic card exists in any pack</span>';
+      }
+    }catch(e){msg.innerHTML='<span style="color:#ef4444">❌ cosmic error: '+e.message+'</span>';}
+  }
+  else if(action==='reset'){
+    if(!confirm('Reset YOUR account to fresh start?'))return;
+    const uname=G.username;const ph=G.passHash;
+    G={username:uname,passHash:ph,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},packCooldowns:{},stagedCards:[],lastDaily:null,
+      auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();
+    if(typeof renderAll==='function')renderAll();
+    msg.innerHTML='<span style="color:#10b981">✅ Account reset to fresh start!</span>';
+  }
+  else if(action==='sendcoins'){
+    const target=prompt('Send coins to which username?');
+    if(!target)return;
+    const amount=parseInt(prompt('How many coins?')||'0');
+    if(!amount||amount<1){msg.innerHTML='<span style="color:#ef4444">❌ Invalid amount</span>';return;}
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
+    const safeKey=target.replace(/[.#$\[\]]/g,'_');
+    db.ref('saves/'+safeKey).once('value').then(snap=>{
+      const save_data=snap.val();
+      if(!save_data){msg.innerHTML='<span style="color:#ef4444">❌ User "'+target+'" not found</span>';return;}
+      const newCoins=(save_data.coins||0)+amount;
+      db.ref('saves/'+safeKey+'/coins').set(newCoins).then(()=>{
+        // Also update leaderboard
+        db.ref('leaderboard/'+safeKey+'/coins').set(newCoins);
+        // Send notification
+        db.ref('notifications/'+safeKey).push({msg:'💰 Admin sent you '+amount.toLocaleString()+' coins! Check your balance.',time:Date.now()});
+        msg.innerHTML='<span style="color:#10b981">✅ Sent '+amount.toLocaleString()+' coins to '+target+'! (new total: '+newCoins.toLocaleString()+')</span>';
+      });
+    }).catch(e=>msg.innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+  }
+  else if(action==='users'){
+    if(!db){msg.innerHTML='<span style="color:#ef4444">❌ Not connected to Firebase</span>';return;}
+    db.ref('leaderboard').once('value').then(snap=>{
+      const data=snap.val();
+      if(!data||!Object.keys(data).length){
+        msg.innerHTML='<span style="color:#888">No users yet</span>';
+        return;
+      }
+      const users=Object.values(data).sort((a,b)=>(b.coins||0)-(a.coins||0));
+      msg.innerHTML='<span style="color:#60a5fa">'+users.length+' players online</span>';
+      if(!ulist)return;
+      ulist.innerHTML=users.map(u=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1a2e">
+          <div style="flex:1">
+            <b style="color:#eee">${u.name||'?'}</b>
+            <span style="color:#888;font-size:.72rem"> 💰${(u.coins||0).toLocaleString()} · 🃏${u.cards||0} · Mythics:${u.mythics||0}${u.gods?' · 👁'+u.gods:''}</span>
+          </div>
+          <button data-user="${(u.name||'').replace(/"/g,'')}" onclick="adminDeleteUser(this.dataset.user)"
+            style="background:#7f1d1d;color:#fff;border:none;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.7rem;flex-shrink:0">🗑️</button>
+        </div>`).join('');
+    }).catch(e=>{
+      msg.innerHTML='<span style="color:#ef4444">❌ Firebase error: '+e.message+'</span>';
+    });
+  }
+  else if(action==='troll'){
+    document.getElementById('adminOverlay').style.display='none';
+    document.getElementById('trollOverlay').style.display='flex';
+  }
+}
+
+
+function adminDeleteUser(name){
+  if(!name||!confirm('Delete "'+name+'"?'))return;
+  const k=name.replace(/[.#$\[\]]/g,'_');
+  Promise.all([db.ref('leaderboard/'+k).remove(),db.ref('saves/'+k).remove(),
+    db.ref('trades/'+k).remove(),db.ref('notifications/'+k).remove()])
+    .then(()=>{document.getElementById('adminMsg').innerHTML='<span style="color:#10b981">✅ Deleted: '+name+'</span>';adminDo('users');})
+    .catch(e=>document.getElementById('adminMsg').innerHTML='<span style="color:#ef4444">❌ '+e.message+'</span>');
+}
+
+function loadFromLocal(){
+  try{const r=localStorage.getItem(KEY);if(r){const d=JSON.parse(r);if(d.username)Object.assign(G,d);}}catch(e){}
+}
+
+function init(){
+  // Always show login - Firebase is source of truth, not localStorage
+  const um=document.getElementById('usernameModal');um.classList.remove('hidden');um.style.display='';
+  // Pre-fill username if we have it cached locally (convenience only)
+  loadFromLocal();
+  if(G.username) document.getElementById('usernameInput').value=G.username;
+}
+
+// ── CARD TRADE MACHINE ───────────────────────────────────────────────────────
+const AI_COLLECTORS = [
+  {name:'CardKing99',desc:'Loves Mythics & Gods'},
+  {name:'MythicHunter',desc:'Only wants rare cards'},
+  {name:'PackMaster',desc:'Collects everything'},
+  {name:'TheLegend',desc:'Specializes in Legendaries'},
+  {name:'CosmicChaser',desc:'Hunting the Cosmic card'},
+];
+let currentAI = 0;
+let aiCollection = [];
+let tmSending = [];
+let tmReceiving = [];
+
+const RARITY_VALS = {common:10,rare:85,epic:260,legendary:470,mythic:950,god:2600,cosmic:50000};
+
+function genAICollection(){
+  const all=PACKS.flatMap(p=>p.cards);
+  const pool=[];
+  for(let i=0;i<12;i++){
+    const base=all[Math.floor(Math.random()*all.length)];
+    pool.push({...base,id:'ai_'+Date.now()+i});
+  }
+  return pool;
+}
+
+function initTM(){
+  aiCollection=genAICollection();
+  tmSending=[];tmReceiving=[];
+  renderTMInv();renderTMAI();renderTMSides();updateTMEval();
+}
+
+function switchAICollector(){
+  currentAI=(currentAI+1)%AI_COLLECTORS.length;
+  aiCollection=genAICollection();
+  tmReceiving=[];
+  renderTMAI();renderTMSides();updateTMEval();
+  const ai=AI_COLLECTORS[currentAI];
+  document.querySelector('#page-trademachine .empty') && 0;
+  notify('Switched to '+ai.name+' — '+ai.desc);
+}
+
+function renderTMInv(){
+  const grid=document.getElementById('tmInvGrid');
+  if(!G.inv.length){grid.innerHTML='<p class="empty">No cards in inventory</p>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=G.inv.map((c,i)=>{
+    const staged=tmSending.find(s=>String(s.id)===String(c.id));
+    return `<div onclick="tmToggleSend('${c.id}')" style="cursor:pointer;background:${staged?'#2a1a4a':'#1a1a2e'};border:1px solid ${staged?'#a855f7':'#333'};border-radius:8px;padding:8px;text-align:center;transition:all .15s">
+      <div style="font-size:1.4rem">${c.icon}</div>
+      <div style="font-size:.68rem;font-weight:700;margin-top:2px">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderTMAI(){
+  const grid=document.getElementById('tmAIGrid');
+  const ai=AI_COLLECTORS[currentAI];
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML='<div style="grid-column:1/-1;color:#888;font-size:.72rem;margin-bottom:4px">'+ai.name+' collection:</div>'+
+    aiCollection.map(c=>{
+    const staged=tmReceiving.find(s=>String(s.id)===String(c.id));
+    return `<div onclick="tmToggleRecv('${c.id}')" style="cursor:pointer;background:${staged?'#1a2a1a':'#1a1a2e'};border:1px solid ${staged?'#10b981':'#333'};border-radius:8px;padding:8px;text-align:center;transition:all .15s">
+      <div style="font-size:1.4rem">${c.icon}</div>
+      <div style="font-size:.68rem;font-weight:700;margin-top:2px">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+    </div>`;
+  }).join('');
+}
+
+function tmToggleSend(id){
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(!c)return;
+  const idx=tmSending.findIndex(s=>String(s.id)===String(id));
+  if(idx!==-1)tmSending.splice(idx,1);
+  else if(tmSending.length<5)tmSending.push(c);
+  else{notify('Max 5 cards per trade');return;}
+  renderTMInv();renderTMSides();updateTMEval();
+}
+
+function tmToggleRecv(id){
+  const c=aiCollection.find(c=>String(c.id)===String(id));
+  if(!c)return;
+  const idx=tmReceiving.findIndex(s=>String(s.id)===String(id));
+  if(idx!==-1)tmReceiving.splice(idx,1);
+  else if(tmReceiving.length<5)tmReceiving.push(c);
+  else{notify('Max 5 cards per trade');return;}
+  renderTMAI();renderTMSides();updateTMEval();
+}
+
+function renderTMSides(){
+  const sendEl=document.getElementById('tmSendList');
+  const recvEl=document.getElementById('tmRecvList');
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  sendEl.innerHTML=tmSending.length?tmSending.map(c=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#2a1a4a;border-radius:6px;margin-bottom:4px;font-size:.78rem">
+      <span>${c.icon}</span><span style="flex:1">${c.name}</span>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+      <button onclick="tmToggleSend('${c.id}')" style="background:none;border:none;color:#a855f7;cursor:pointer">✕</button>
+    </div>`).join(''):'<p class="empty">Click cards from your inventory below</p>';
+  recvEl.innerHTML=tmReceiving.length?tmReceiving.map(c=>`
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a2a1a;border-radius:6px;margin-bottom:4px;font-size:.78rem">
+      <span>${c.icon}</span><span style="flex:1">${c.name}</span>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+      <button onclick="tmToggleRecv('${c.id}')" style="background:none;border:none;color:#10b981;cursor:pointer">✕</button>
+    </div>`).join(''):'<p class="empty">Click cards from AI collection below</p>';
+  document.getElementById('tmExecuteBtn').disabled=!(tmSending.length&&tmReceiving.length);
+}
+
+function cardValue(c){return RARITY_VALS[c.rarity]||c.val||10;}
+
+function updateTMEval(){
+  const evalEl=document.getElementById('tmEval');
+  if(!tmSending.length&&!tmReceiving.length){evalEl.style.display='none';return;}
+  evalEl.style.display='';
+  const myVal=tmSending.reduce((a,c)=>a+cardValue(c),0);
+  const theirVal=tmReceiving.reduce((a,c)=>a+cardValue(c),0);
+  document.getElementById('tmYourVal').textContent=myVal;
+  document.getElementById('tmTheirVal').textContent=theirVal;
+  const ratio=theirVal>0?myVal/theirVal:0;
+  const pct=Math.min(100,Math.round(ratio*60));
+  const bar=document.getElementById('tmBar');
+  const verdict=document.getElementById('tmVerdict');
+  bar.style.width=pct+'%';
+  if(pct>=55){bar.style.background='#10b981';verdict.textContent='✅ Fair deal — likely accepted';verdict.style.color='#10b981';}
+  else if(pct>=35){bar.style.background='#f5c518';verdict.textContent='🤔 Low offer — might get rejected';verdict.style.color='#f5c518';}
+  else{bar.style.background='#ef4444';verdict.textContent='❌ Too low — they will say no';verdict.style.color='#ef4444';}
+}
+
+function executeTM(){
+  if(!tmSending.length||!tmReceiving.length){notify('Add cards on both sides!');return;}
+  const myVal=tmSending.reduce((a,c)=>a+cardValue(c),0);
+  const theirVal=tmReceiving.reduce((a,c)=>a+cardValue(c),0);
+  const ratio=theirVal>0?myVal/theirVal:0;
+  const msgEl=document.getElementById('tmMsg');
+  
+  if(ratio<0.35){
+    msgEl.innerHTML='<span style="color:#ef4444">❌ '+AI_COLLECTORS[currentAI].name+' rejected your offer! Offer more value.</span>';
+    return;
+  }
+  if(ratio<0.55&&Math.random()<0.4){
+    msgEl.innerHTML='<span style="color:#f5c518">🤔 '+AI_COLLECTORS[currentAI].name+' countered — they want a bit more.</span>';
+    return;
+  }
+  // Trade accepted!
+  tmSending.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  tmReceiving.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
+  G.trades=(G.trades||0)+1;
+  tmSending=[];tmReceiving=[];
+  aiCollection=genAICollection();
+  save();checkAchievements();renderInv();renderStats();renderTMInv();renderTMAI();renderTMSides();updateTMEval();
+  msgEl.innerHTML='<span style="color:#10b981">✅ Trade accepted! '+AI_COLLECTORS[currentAI].name+' is happy with the deal.</span>';
+  notify('🔄 Trade complete!');
+  checkDailyProgress();
+}
+
+function clearTM(){tmSending=[];tmReceiving=[];renderTMInv();renderTMAI();renderTMSides();updateTMEval();document.getElementById('tmMsg').textContent='';}
+
+function signInWithGoogle(){
+  // Initialize auth if not done
+  try {
+    const auth = firebase.auth();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).then(result=>{
+      const user = result.user;
+      const uid = user.uid;
+      const suggestedName = user.displayName || user.email.split('@')[0];
+      // Check if returning user
+      db.ref('saves/'+uid).once('value').then(snap=>{
+        const cloudSave = snap.val();
+        if(cloudSave && cloudSave.username){
+          // Returning Google user - load their save
+          G = cloudSave;
+          save();
+          notify('👋 Welcome back, '+G.username+'!');
+          closeLoginModal();
+          startGame();
+        } else {
+          // New Google user - show username picker
+          closeLoginModal();
+          showGoogleUsernamePicker(uid, suggestedName);
+        }
+      });
+    }).catch(err=>{
+      notify('❌ Google sign-in failed: '+err.message);
+    });
+  } catch(e) {
+    notify('❌ Google sign-in not available right now');
+  }
+}
+
+function showGoogleUsernamePicker(uid, suggestedName){
+  const modal = document.getElementById('googlePickerModal');
+  modal.classList.remove('hidden');
+  modal.style.display = '';
+  const inp = document.getElementById('googleUsernameInput');
+  inp.value = suggestedName;
+  // Store uid for use when confirming
+  modal.dataset.uid = uid;
+}
+
+function confirmGoogleUsername(){
+  const modal = document.getElementById('googlePickerModal');
+  const name = document.getElementById('googleUsernameInput').value.trim();
+  const uid = modal.dataset.uid;
+  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
+  // Check if username taken
+  const safeNameKey = name.replace(/[.#$\[\]]/g,'_');
+  db.ref('saves/'+safeNameKey).once('value').then(snap=>{
+    if(snap.val()&&snap.val().username===name){
+      notify('❌ That username is taken! Pick another');return;
+    }
+    // Create account
+    G={username:name,passHash:'google_'+uid,googleUid:uid,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+      fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+      packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+    save();
+    // Also save under Google UID so returning login works
+    db.ref('saves/'+uid).set({username:name,googleUid:uid});
+    notify('🎉 Welcome, '+name+'! Account created');
+    modal.classList.add('hidden');modal.style.display='none';
+    startGame();
+  });
+}
+
+function showAccountMenu(){
+  const menu=document.getElementById('accountMenu');
+  const nameEl=document.getElementById('accountMenuName');
+  if(nameEl) nameEl.textContent='Logged in as: '+(G.username||'?');
+  const visible=menu.style.display==='block';
+  menu.style.display=visible?'none':'block';
+  if(!visible){
+    // Close on outside click
+    setTimeout(()=>{
+      document.addEventListener('click',function closeMenu(e){
+        if(!document.getElementById('accountMenu').contains(e.target)&&e.target.id!=='accountMenuBtn'){
+          document.getElementById('accountMenu').style.display='none';
+          document.removeEventListener('click',closeMenu);
+        }
+      });
+    },10);
+  }
+}
+
+function logout(){
+  document.getElementById('accountMenu').style.display='none';
+  if(!confirm('Log out of '+G.username+'? Your progress is saved to your account.')) return;
+  // Clear local state
+  G={username:'',coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+    fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+    packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+  localStorage.removeItem(KEY);
+  // Sign out Firebase Auth if used
+  try{firebase.auth().signOut();}catch(e){}
+  // Show login screen
+  const modal=document.getElementById('usernameModal');
+  modal.classList.remove('hidden');modal.style.display='';
+  document.getElementById('mainApp').style.display='none';
+  notify('👋 Logged out successfully');
+}
+
+function deleteAccount(){
+  document.getElementById('accountMenu').style.display='none';
+  if(!confirm('PERMANENTLY delete your account "'+G.username+'"? This cannot be undone!')) return;
+  if(!confirm('Are you absolutely sure? All your cards and coins will be lost forever!')) return;
+  const safeKey=(G.username||'').replace(/[.#$\[\]]/g,'_');
+  // Delete from Firebase
+  Promise.all([
+    db.ref('saves/'+safeKey).remove(),
+    db.ref('leaderboard/'+safeKey).remove(),
+    db.ref('trades/'+safeKey).remove(),
+    G.googleUid ? db.ref('saves/'+G.googleUid).remove() : Promise.resolve()
+  ]).then(()=>{
+    notify('Account deleted');
+    logout();
+  }).catch(()=>{
+    notify('Account deleted locally');
+    logout();
+  });
+}
+
+function closeLoginModal(){
+  const m=document.getElementById('usernameModal');
+  if(m){m.classList.add('hidden');m.style.display='none';}
+}
+
+function hashPass(s){
+  // Simple hash for password (not cryptographic but prevents casual theft)
+  let h=0;
+  for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}
+  return Math.abs(h).toString(36);
+}
+
+function setUsername(){
+  const name=document.getElementById('usernameInput').value.trim();
+  const pass=document.getElementById('passwordInput').value;
+  if(!name||name.length<2){notify('❌ Username must be at least 2 characters');return;}
+  if(!pass||pass.length<3){notify('❌ Password must be at least 3 characters');return;}
+  const safeKey=name.replace(/[.#$\[\]]/g,'_');
+  const passHash=hashPass(pass);
+  
+  db.ref('saves/'+safeKey).once('value').then(snap=>{
+    const cloudSave=snap.val();
+    if(cloudSave&&cloudSave.username===name){
+      // Existing account — verify password
+      if(cloudSave.passHash&&cloudSave.passHash!==passHash){
+        notify('❌ Wrong password!');
+        return;
+      }
+      // Correct password — restore save
+      G=cloudSave;
+      G.username=name;
+      G.passHash=passHash;
+      save();
+      notify('👋 Welcome back, '+name+'!');
+      closeLoginModal();
+      startGame();
+    } else {
+      // New account - fresh state with starting coins
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,
+        auctions:[],dailies:[],achDone:[],pendingPulled:[],faPool:[]};
+      save();
+      notify('🎉 Account created, '+name+'! You start with 750 coins 💰');
+      closeLoginModal();
+      startGame();
+    }
+  }).catch(()=>{
+    // Firebase offline - use local cache if username matches
+    loadFromLocal();
+    if(G.username===name){
+      notify('⚠️ Offline mode - using local save');
+    } else {
+      G={username:name,passHash:passHash,coins:750,inv:[],packsOpened:0,totalEarned:0,totalSpent:0,
+        fusions:0,trades:0,auctionWins:0,dailiesCompleted:0,sellCount:0,
+        packsOpenedByType:{},stagedCards:[],lastDaily:null,auctions:[],dailies:[],achDone:[],pendingPulled:[]};
+    }
+    save();
+    const um2=document.getElementById('usernameModal');um2.classList.add('hidden');um2.style.display='none';
+    startGame();
+  });
+}
+
+function startGame(){
+  if(!G.auctions||!G.auctions.length) G.auctions=genAuctions();
+  checkDailies();
+  renderAll();
+  // Show username in nav
+  const badge=document.querySelector('.coins-badge');
+  if(badge&&G.username) badge.title=G.username;
+  setInterval(tickAuctions,1000);
+  const accBtn=document.getElementById('accountMenuBtn');
+  if(accBtn) accBtn.title=G.username||'Account';
+  // Check notifications every 30s
+  setInterval(checkNotifications,30000);
+  setTimeout(checkNotifications,3000);
+  const today=new Date().toDateString();
+  if(G.lastLogin!==today){G.lastLogin=today;G.coins+=50;save();notify('🎁 Daily login bonus! +50 coins');}
+}
+
+function renderAll(){
+  updateCoins();renderStats();renderPacks();renderInv();
+  renderAuctions();renderTrade();renderAchievements();renderLB('coins');
+  renderDailyChallenges();renderRecentActivity();
+}
+
+// ── RECENT ACTIVITY ─────────────────────────────────────────────────────────
+function addActivity(text){
+  if(!G.recentActivity) G.recentActivity=[];
+  G.recentActivity.unshift({text,time:Date.now()});
+  if(G.recentActivity.length>20) G.recentActivity=G.recentActivity.slice(0,20);
+  renderRecentActivity();
+}
+
+function renderRecentActivity(){
+  const el=document.getElementById('recentActivity');
+  if(!el)return;
+  if(!G.recentActivity||!G.recentActivity.length){el.innerHTML='<p class="empty" style="padding:6px">No activity yet — open a pack!</p>';return;}
+  el.innerHTML=G.recentActivity.slice(0,5).map(a=>{
+    const ago=Math.floor((Date.now()-a.time)/60000);
+    const agoStr=ago<1?'just now':ago<60?ago+'m ago':Math.floor(ago/60)+'h ago';
+    return '<div class="recent-item"><span class="recent-icon">▸</span><span style="flex:1">'+a.text+'</span><span style="color:var(--muted);font-size:.7rem;flex-shrink:0;margin-left:8px">'+agoStr+'</span></div>';
+  }).join('');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+function show(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  if(page==='trade')renderTrade();
+  if(page==='fuse')renderFuseSlots();
+  if(page==='leaderboard')renderLB('coins');
+  if(page==='trademachine')initTM();
+  if(page==='odds')renderOdds();
+}
+
+// ── COINS ─────────────────────────────────────────────────────────────────────
+function updateCoins(){document.getElementById('coinDisplay').textContent=G.coins.toLocaleString();}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function renderStats(){
+  document.getElementById('stat-cards').textContent=G.inv.length;
+  document.getElementById('stat-packs').textContent=G.packsOpened;
+  document.getElementById('stat-mythics').textContent=G.inv.filter(c=>c.rarity==='mythic').length;
+  document.getElementById('stat-worth').textContent=G.inv.reduce((a,c)=>a+c.val,0).toLocaleString();
+}
+
+// ── PACKS ─────────────────────────────────────────────────────────────────────
+function setPackQty(packId, qty){
+  packQuantities[packId]=qty;
+  renderPacks();
+}
+
+function renderPacks(){
+  const grid=document.getElementById('packGrid');
+  const now=Date.now();
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=PACKS.map(p=>{
+    const qty=packQuantities[p.id]||1;
+    const discounts={1:0,3:5,5:8,10:12};
+    const disc=discounts[qty]||0;
+    const basePrice=p.price*qty;
+    const finalPrice=Math.floor(basePrice*(1-disc/100));
+    const cooldownEnd=G.packCooldowns&&G.packCooldowns[p.id]||0;
+    const onCooldown=cooldownEnd>now;
+    const cdSec=onCooldown?Math.ceil((cooldownEnd-now)/1000):0;
+    return `<div class="pack">
+      <div class="pack-icon" id="pack-icon-${p.id}">${p.icon}</div>
+      <div class="pack-name">${p.name}</div>
+      <div class="pack-desc">${p.desc}</div>
+      <div class="qty-selector">
+        ${[1,3,5,10].map(q=>`<button class="qty-btn${qty===q?' active':''}" onclick="event.stopPropagation();setPackQty('${p.id}',${q})">${q}x${q>1?' -'+discounts[q]+'%':''}</button>`).join('')}
+      </div>
+      ${disc>0?`<div style="font-size:.72rem;color:var(--green);margin-bottom:4px">💸 ${disc}% discount applied!</div>`:''}
+      ${onCooldown
+        ? `<button class="pack-price" disabled style="background:#333;cursor:not-allowed">⏳ <span id="cd-${p.id}">${cdSec}s</span></button>`
+        : `<button class="pack-price" onclick="event.stopPropagation();buyPack('${p.id}',${qty})">💰 ${finalPrice} coins${qty>1?' ('+qty+'x)':''}</button>`}
+    </div>`;
+  }).join('');
+}
+
+// Update cooldown timers every second
+setInterval(()=>{
+  const now=Date.now();
+  PACKS.forEach(p=>{
+    const el=document.getElementById('cd-'+p.id);
+    if(el){
+      const rem=Math.ceil(((G.packCooldowns&&G.packCooldowns[p.id]||0)-now)/1000);
+      if(rem>0) el.textContent=rem+'s';
+      else renderPacks();
+    }
+  });
+},1000);
+
+function buyPack(packId, qty=1){
+  const pack=PACKS.find(p=>p.id===packId);
+  if(!pack)return;
+  const discounts={1:0,3:5,5:8,10:12};
+  const disc=discounts[qty]||0;
+  const totalPrice=Math.floor(pack.price*qty*(1-disc/100));
+  if(G.coins<totalPrice){notify('❌ Not enough coins!');return;}
+  
+  // Check cooldown
+  if(!G.packCooldowns)G.packCooldowns={};
+  if(G.packCooldowns&&G.packCooldowns[packId]>Date.now()){
+    notify('⏳ Pack on cooldown!');return;
+  }
+
+  G.coins-=totalPrice;G.totalSpent+=totalPrice;
+  G.packsOpened+=qty;
+  G.packsOpenedByType[packId]=(G.packsOpenedByType[packId]||0)+qty;
+  
+  // Set cooldown
+  if(!G.packCooldowns) G.packCooldowns={};
+  G.packCooldowns[packId]=Date.now()+30000;
+  
+  // Play sound & animate
+  playPackOpen();
+  const iconEl=document.getElementById('pack-icon-'+packId);
+  if(iconEl){iconEl.classList.add('pack-spinning');setTimeout(()=>iconEl.classList.remove('pack-spinning'),800);}
+  
+  // Pull cards (5 per pack * qty)
+  const pulled=[];
+  for(let q=0;q<qty;q++){
+    for(let i=0;i<5;i++) pulled.push(pullCard(pack));
+  }
+  G.pendingPulled=[...pulled];
+  save();checkAchievements();updateCoins();renderStats();
+  renderPacks();
+  
+  // Check for cosmic
+  const hasCosmic=pulled.some(c=>c.rarity==='cosmic');
+  if(hasCosmic){
+    showPackModal(pack.name,pulled,true);
+  } else {
+    showPackModal(pack.name,pulled,false);
+  }
+  
+  // Check daily
+  checkDailyProgress();
+}
+
+function pullCard(pack){
+  // For non-ONE packs, exclude cosmic
+  const isOnePack=pack.id==='theone';
+  const rates={...RARITY_RATES};
+  if(!isOnePack){delete rates.cosmic;}
+  
+  const r=Math.random();
+  let rarity='common';
+  let cum=0;
+  const totalRate=Object.values(rates).reduce((a,b)=>a+b,0);
+  const adjRates={};
+  for(const[rar,rate] of Object.entries(rates)) adjRates[rar]=rate/totalRate;
+  
+  for(const[rar,rate] of Object.entries(adjRates)){cum+=rate;if(r<=cum){rarity=rar;break;}}
+  const pool=pack.cards.filter(c=>c.rarity===rarity);
+  const base=pool.length?pool[Math.floor(Math.random()*pool.length)]:{...pack.cards[0]};
+  return {...base,id:Date.now()+Math.random(),packType:pack.id};
+}
+
+function showPackModal(packName,cards,hasCosmic=false){
+  const numPacks=Math.ceil(cards.length/5);
+  document.getElementById('modalTitle').textContent=`📦 ${packName}${numPacks>1?' × '+numPacks:''} — ${cards.length} Cards!`;
+  const container=document.getElementById('modalCards');
+  const rarityColor={common:'#374151',rare:'#1e40af',epic:'#4c1d95',legendary:'#92400e',mythic:'#7f1d1d',god:'#4a0080',cosmic:'#001a4a'};
+  
+  // Play appropriate sound
+  const hasGod=cards.some(c=>c.rarity==='god');
+  if(hasCosmic) playCosmicPull();
+  else if(hasGod) playGodPull();
+  
+  container.innerHTML=cards.map((c,i)=>{
+    const isGod=c.rarity==='god', isCosmic=c.rarity==='cosmic';
+    const specialStyle=isCosmic?'background:linear-gradient(135deg,#000510,#001a4a,#003366);animation:cosmicglow 1s infinite alternate':'';
+    const valDisplay=isCosmic?'🌌 PRICELESS':('💰 '+c.val+' coins');
+    setTimeout(()=>playCardFlip(),i*150);
+    return `<div class="pull-card${isCosmic?' cosmic-card-reveal':''}" style="border-color:${rarityColor[c.rarity]||'#333'};animation-delay:${i*.1}s;${specialStyle}">
+      <div class="big-icon" style="${isCosmic?'font-size:3.5rem;filter:drop-shadow(0 0 16px #00e5ff)':isGod?'filter:drop-shadow(0 0 10px #e040fb)':''}">${c.icon}</div>
+      <div class="pull-name" style="${isCosmic?'color:#00e5ff;font-size:1.1rem':isGod?'color:#e040fb':''}">${c.name}</div>
+      <div style="font-size:.72rem;color:var(--muted);margin:2px 0">${c.type} · <span style="color:${rarityColor[c.rarity]};text-transform:uppercase;font-weight:800">${c.rarity}</span></div>
+      <div class="pull-val" style="${isCosmic?'color:#00e5ff':''}"> ${valDisplay}</div>
+    </div>`;
+  }).join('');
+  
+  const pmEl=document.getElementById('packModal');
+  if(pmEl){
+    pmEl.classList.remove('hidden');
+    pmEl.style.display='flex';
+    pmEl.style.position='fixed';
+    pmEl.style.inset='0';
+    pmEl.style.zIndex='10000';
+  }
+  
+  // Cosmic reveal sequence
+  if(hasCosmic){
+    setTimeout(()=>triggerCosmicReveal(cards.find(c=>c.rarity==='cosmic'), cards),600);
+  }
+}
+
+function triggerCosmicReveal(cosmicCard, allCards){
+  const overlay=document.getElementById('cosmicReveal');
+  const starsEl=document.getElementById('cosmicStars');
+  const cardEl=document.getElementById('cosmicCardDisplay');
+  
+  // Generate stars
+  starsEl.innerHTML='';
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');
+    s.className='star-dot';
+    const size=Math.random()*4+1;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*2}s;animation-duration:${1+Math.random()*2}s`;
+    starsEl.appendChild(s);
+  }
+  
+  // Show cosmic card
+  cardEl.innerHTML=`
+    <div class="cosmic-card-reveal" style="background:linear-gradient(135deg,#000510,#001a4a,#003366);border-radius:20px;padding:40px;border:3px solid #00e5ff;box-shadow:0 0 60px #00e5ff,0 0 120px #0288d1">
+      <div style="font-size:5rem;margin-bottom:16px;filter:drop-shadow(0 0 24px #00e5ff)">${cosmicCard.icon}</div>
+      <div style="color:#00e5ff;font-size:1.6rem;font-weight:900;margin-bottom:8px;animation:cosmicglow 1s infinite alternate">${cosmicCard.name}</div>
+      <div style="color:#00e5ff;font-size:1rem;margin-bottom:4px">✦ COSMIC ✦</div>
+      <div style="color:#7dd3fc;font-size:.9rem">🌌 PRICELESS</div>
+    </div>
+    <div style="color:#00e5ff;font-size:1rem;margin-top:20px;animation:starPulse 1.5s infinite">⭐ THE RAREST PULL IN THE GAME ⭐</div>`;
+  
+  // Fade out other cards in modal
+  document.querySelectorAll('.pull-card:not(.cosmic-card-reveal)').forEach(el=>el.style.opacity='0.1');
+  
+  overlay.style.display='flex';
+  document.body.classList.add('screen-shake');
+  setTimeout(()=>document.body.classList.remove('screen-shake'),600);
+  
+  // After 3 seconds, hide overlay and restore cards
+  setTimeout(()=>{
+    overlay.style.display='none';
+    document.querySelectorAll('.pull-card').forEach(el=>el.style.opacity='');
+  },3000);
+}
+
+function closeModal(){
+  const count=G.pendingPulled.length;
+  G.inv.push(...G.pendingPulled);
+  G.pendingPulled=[];
+  save();checkAchievements();renderInv();renderStats();
+  const pm2El=document.getElementById('packModal');
+  if(pm2El){pm2El.classList.add('hidden');pm2El.style.display='none';}
+  notify(`🃏 ${count} cards added to inventory!`);
+}
+
+function sellAllPulled(){
+  const earned=G.pendingPulled.reduce((a,c)=>a+c.val,0);
+  G.coins+=earned;G.totalEarned+=earned;
+  G.pendingPulled=[];
+  save();updateCoins();renderStats();
+  const pm2El=document.getElementById('packModal');
+  if(pm2El){pm2El.classList.add('hidden');pm2El.style.display='none';}
+  notify(`💰 Sold all for ${earned} coins!`);
+}
+
+// ── INVENTORY ─────────────────────────────────────────────────────────────────
+let invFilter='all', invSort='val';
+
+function setInvFilter(f,el){
+  invFilter=f;
+  document.querySelectorAll('.inv-filter').forEach(b=>b.classList.remove('active'));
+  if(el)el.classList.add('active');
+  renderInv();
+}
+
+function sortInv(by){invSort=by;renderInv();}
+
+function sellByRarity(rarity){
+  const toSell=rarity==='all'?[...G.inv]:G.inv.filter(c=>c.rarity===rarity);
+  if(!toSell.length){notify('No '+rarity+' cards to sell');return;}
+  const earned=toSell.reduce((a,c)=>a+c.val,0);
+  if(!confirm('Sell '+toSell.length+' card(s) for '+earned.toLocaleString()+' coins?'))return;
+  G.coins+=earned;G.totalEarned+=earned;G.sellCount=(G.sellCount||0)+toSell.length;
+  if(rarity==='all')G.inv=[];
+  else G.inv=G.inv.filter(c=>c.rarity!==rarity);
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();checkAchievements();
+  notify('💰 Sold '+toSell.length+' cards for '+earned.toLocaleString()+' coins!');
+}
+
+function renderInv(){
+  const grid=document.getElementById('invGrid');
+  if(!G.inv.length){grid.innerHTML='<p class="empty">No cards yet — open some packs!</p>';return;}
+  const search=(document.getElementById('invSearch')||{}).value||'';
+  let sorted=[...G.inv];
+  // Filter
+  if(invFilter&&invFilter!=='all') sorted=sorted.filter(c=>c.rarity===invFilter);
+  // Search
+  if(search) sorted=sorted.filter(c=>c.name.toLowerCase().includes(search.toLowerCase()));
+  // Sort
+  const sortBy=invSort||'val';
+  if(sortBy==='val') sorted.sort((a,b)=>b.val-a.val);
+  if(sortBy==='rarity') sorted.sort((a,b)=>RARITY_ORDER.indexOf(b.rarity)-RARITY_ORDER.indexOf(a.rarity));
+  if(sortBy==='type') sorted.sort((a,b)=>a.type.localeCompare(b.type));
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=sorted.map(c=>`
+    <div class="ccard">
+      <span class="rarity-badge ${rColors[c.rarity]}">${c.rarity.toUpperCase()}</span>
+      <div class="ccard-icon">${c.icon}</div>
+      <div class="ccard-name">${c.name}</div>
+      <div class="ccard-type">${c.type}</div>
+      <div class="ccard-val">💰 ${c.val}</div>
+      <button class="btn-sm" style="width:100%;margin-top:8px;font-size:.72rem" onclick="sellCard('${c.id}')">Sell</button>
+    </div>
+  `).join('');
+}
+
+function sortInv(by){renderInv(by);}
+
+function sellCard(id){
+  const idx=G.inv.findIndex(c=>String(c.id)===String(id));
+  if(idx===-1)return;
+  const card=G.inv[idx];
+  G.coins+=card.val;G.totalEarned+=card.val;
+  G.inv.splice(idx,1);
+  G.sellCount=(G.sellCount||0)+1;
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();
+  notify(`💰 Sold ${card.name} for ${card.val} coins`);
+  checkAchievements();
+}
+
+function sellAll(rarity){
+  const toSell=rarity==='all'?[...G.inv]:G.inv.filter(c=>c.rarity===rarity);
+  if(!toSell.length){notify(`No ${rarity} cards to sell`);return;}
+  const earned=toSell.reduce((a,c)=>a+c.val,0);
+  G.coins+=earned;G.totalEarned+=earned;
+  G.sellCount=(G.sellCount||0)+toSell.length;
+  if(rarity==='all') G.inv=[];
+  else G.inv=G.inv.filter(c=>c.rarity!==rarity);
+  save();updateCoins();renderInv();renderStats();checkDailyProgress();
+  notify(`💰 Sold ${toSell.length} cards for ${earned} coins!`);
+  checkAchievements();
+}
+
+// ── AUCTIONS ──────────────────────────────────────────────────────────────────
+function genAuctions(){
+  const aucs=[];
+  // Pick random rare+ cards
+  const allCards=PACKS.flatMap(p=>p.cards).filter(c=>RARITY_ORDER.indexOf(c.rarity)>=1);
+  for(let i=0;i<4;i++){
+    const base=allCards[Math.floor(Math.random()*allCards.length)];
+    aucs.push({
+      id:Date.now()+i,card:{...base,id:Date.now()+Math.random()},
+      currentBid:Math.floor(base.val*.6),
+      minBid:Math.floor(base.val*.6),
+      topBidder:'No bids yet',
+      timeLeft:60+Math.floor(Math.random()*120),
+      aiTimer:15+Math.floor(Math.random()*20)
+    });
+  }
+  return aucs;
+}
+
+function renderAuctions(){
+  const list=document.getElementById('auctionList');
+  if(!G.auctions.length){list.innerHTML='<p class="empty">No auctions right now — check back soon!</p>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  list.innerHTML=G.auctions.map(a=>`
+    <div class="auction-item" id="auc-${a.id}">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:2rem">${a.card.icon}</div>
+        <div style="flex:1">
+          <div style="font-weight:700">${a.card.name} <span class="tag ${rColors[a.card.rarity]}">${a.card.rarity}</span></div>
+          <div style="font-size:.78rem;color:var(--muted)">${a.card.type} · Market value: 💰${a.card.val}</div>
+          <div style="margin-top:4px;font-size:.82rem">Current bid: <strong style="color:var(--gold)">💰${a.currentBid}</strong> by ${a.topBidder}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="auction-timer${a.timeLeft>30?' safe':''}" id="timer-${a.id}">⏱ ${fmt(a.timeLeft)}</div>
+        </div>
+      </div>
+      <div class="bid-row">
+        <input class="bid-input" type="number" id="bid-${a.id}" placeholder="Min: ${a.currentBid+1}" min="${a.currentBid+1}"/>
+        <button class="btn btn-green" onclick="placeBid('${a.id}')">Bid</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function fmt(s){const m=Math.floor(s/60),sec=s%60;return m+':'+String(sec).padStart(2,'0');}
+
+function placeBid(id){
+  const auc=G.auctions.find(a=>String(a.id)===String(id));
+  if(!auc)return;
+  const inp=document.getElementById('bid-'+id);
+  const bid=parseInt(inp.value);
+  if(isNaN(bid)||bid<=auc.currentBid){notify('❌ Bid must be higher than current bid!');return;}
+  if(bid>G.coins){notify('❌ Not enough coins!');return;}
+  auc.currentBid=bid;auc.topBidder='You';auc.aiTimer=8+Math.floor(Math.random()*12);
+  save();renderAuctions();
+  notify(`🏆 You're the top bidder at ${bid} coins!`);
+}
+
+function tickAuctions(){
+  if(!G||!G.auctions) return;
+  let changed=false;
+  G.auctions.forEach(a=>{
+    a.timeLeft=Math.max(0,a.timeLeft-1);
+    a.aiTimer=Math.max(0,a.aiTimer-1);
+    // AI bids
+    const AI_NAMES=['CardKing','PackMaster','MythicHunter','RareFinder','LuckyDraw'];
+    if(a.aiTimer===0&&a.timeLeft>5){
+      if(a.topBidder!=='You'||(a.topBidder==='You'&&Math.random()<0.35)){
+        const aiName=AI_NAMES[Math.floor(Math.random()*AI_NAMES.length)];
+        const bump=5+Math.floor(Math.random()*25);
+        if(a.currentBid+bump < a.card.val*1.5){
+          a.currentBid+=bump;
+          a.topBidder=aiName;
+          a.aiTimer=8+Math.floor(Math.random()*12);
+        }
+      }
+    }
+    // End auction
+    if(a.timeLeft===0){
+      if(a.topBidder==='You'){
+        G.coins-=a.currentBid;G.totalSpent+=a.currentBid;
+        G.inv.push({...a.card});G.auctionWins++;
+        notify(`🏆 You won the auction! ${a.card.name} added to inventory!`);
+        checkAchievements();
+      } else {
+        notify(`⏱ Auction ended — ${a.topBidder} won ${a.card.name}`);
+      }
+      changed=true;
+    }
+  });
+  G.auctions=G.auctions.filter(a=>a.timeLeft>0);
+  if(G.auctions.length<2){G.auctions.push(...genAuctions().slice(0,2));}
+  if(changed){save();updateCoins();renderStats();renderInv();}
+  // Update timers in DOM
+  G.auctions.forEach(a=>{
+    const t=document.getElementById('timer-'+a.id);
+    if(t){t.textContent=`⏱ ${fmt(a.timeLeft)}`;t.className='auction-timer'+(a.timeLeft>30?' safe':'');}
+  });
+}
+
+// ── TRADE ─────────────────────────────────────────────────────────────────────
+// ── P2P TRADE SYSTEM ─────────────────────────────────────────────────────────
+let tradeOfferCards = [];
+let currentTradeRoom = null; // {tradeId, partner, myCards, theirCards, myReady, theirReady}
+let pendingPopupTrade = null;
+let tradeRoomInterval = null;
+
+function switchTradeTab(tab){
+  document.getElementById('tradeInboxTab').style.display=tab==='inbox'?'':'none';
+  document.getElementById('tradeSendTab').style.display=tab==='send'?'':'none';
+  const inboxBtn=document.getElementById('tradeTabInbox');
+  const sendBtn=document.getElementById('tradeTabSend');
+  inboxBtn.style.background=tab==='inbox'?'var(--accent)':'none';
+  inboxBtn.style.color=tab==='inbox'?'#fff':'#888';
+  sendBtn.style.background=tab==='send'?'var(--accent)':'none';
+  sendBtn.style.color=tab==='send'?'#fff':'#888';
+  if(tab==='inbox')checkIncomingTrades();
+  if(tab==='send')renderTradeOfferInv();
+}
+
+function renderTrade(){
+  checkIncomingTrades();
+  renderTradeOfferInv();
+  renderTradeStaged();
+}
+
+function renderTradeOfferInv(){
+  const grid=document.getElementById('tradeOfferInv');
+  if(!grid)return;
+  if(!G.inv.length){grid.innerHTML='<p class="empty" style="font-size:.75rem;grid-column:1/-1">Your inventory is empty</p>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  grid.innerHTML=G.inv.map(c=>{
+    const staged=tradeOfferCards.find(s=>String(s.id)===String(c.id));
+    return `<div onclick="toggleTradeOffer('${c.id}')" class="offer-card-mini${staged?' selected':''}">
+      <div style="font-size:1.3rem">${c.icon}</div>
+      <div style="font-size:.6rem;margin-top:2px;line-height:1.2">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem;margin-top:2px">${c.rarity}</span>
+    </div>`;
+  }).join('');
+}
+
+function toggleTradeOffer(id){
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(!c)return;
+  const idx=tradeOfferCards.findIndex(s=>String(s.id)===String(id));
+  if(idx!==-1)tradeOfferCards.splice(idx,1);
+  else if(tradeOfferCards.length<5)tradeOfferCards.push(c);
+  else{notify('Max 5 cards per trade');return;}
+  renderTradeOfferInv();renderTradeStaged();
+}
+
+function renderTradeStaged(){
+  const el=document.getElementById('tradeOfferStaged');
+  if(!el)return;
+  if(!tradeOfferCards.length){el.innerHTML='<span style="color:#555;font-size:.75rem;align-self:center">Nothing staged yet</span>';return;}
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  el.innerHTML=tradeOfferCards.map(c=>`
+    <div class="staged-tag" onclick="toggleTradeOffer('${c.id}')">
+      <span>${c.icon}</span><span>${c.name}</span>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem">${c.rarity}</span>
+      <span style="color:#a855f7;font-size:.8rem;margin-left:2px">✕</span>
+    </div>`).join('');
+}
+
+function sendTradeRequest(){
+  const target=document.getElementById('tradeTargetUser').value.trim();
+  const want=document.getElementById('tradeWantInput').value.trim();
+  const msgEl=document.getElementById('tradeSendMsg');
+  if(!target){msgEl.innerHTML='<span style="color:var(--red)">❌ Enter a username</span>';return;}
+  if(!tradeOfferCards.length){msgEl.innerHTML='<span style="color:var(--red)">❌ Stage some cards to offer</span>';return;}
+  if(target.toLowerCase()===G.username.toLowerCase()){msgEl.innerHTML='<span style="color:var(--red)">❌ Cannot trade with yourself</span>';return;}
+
+  const safeTarget=target.replace(/[.#$\[\]]/g,'_');
+  const tradeId='trade_'+Date.now();
+  const tradeData={
+    id:tradeId,from:G.username,to:target,
+    offering:tradeOfferCards.map(c=>({...c})),
+    wanting:want||'Make me an offer',
+    timestamp:Date.now(),status:'pending'
+  };
+
+  db.ref('trades/'+safeTarget+'/'+tradeId).set(tradeData).then(()=>{
+    msgEl.innerHTML='<span style="color:var(--green)">✅ Trade request sent to '+target+'! They will see a popup.</span>';
+    tradeOfferCards=[];
+    document.getElementById('tradeTargetUser').value='';
+    document.getElementById('tradeWantInput').value='';
+    renderTradeOfferInv();renderTradeStaged();
+    G.trades++;save();checkAchievements();
+  }).catch(()=>{
+    msgEl.innerHTML='<span style="color:var(--red)">❌ Could not send — check the username</span>';
+  });
+}
+
+function checkIncomingTrades(){
+  if(!G.username)return;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  const el=document.getElementById('incomingTrades');
+  if(!el)return;
+  el.innerHTML='';
+  const rColorsG={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  // Check ready notifications first
+  db.ref('tradenotifs/'+safeKey).once('value').then(notifSnap=>{
+    const notifs=notifSnap.val();
+    if(notifs){
+      Object.entries(notifs).forEach(([tid,n])=>{
+        if(!n.ready)return;
+        const initials=(n.from||'?').slice(0,2).toUpperCase();
+        el.innerHTML+=`<div class="trade-request-card" style="border-color:#10b981;background:#071210">
+          <div class="tr-header">
+            <div class="tr-avatar" style="background:#10b981">${initials}</div>
+            <div><div class="tr-from" style="color:#10b981">⚡ ${n.from} is ready!</div>
+            <div style="font-size:.72rem;color:#888">They put up their cards and readied up</div></div>
+          </div>
+          <div class="tr-offering-label">Their cards on the table</div>
+          <div class="tr-cards-row">${(n.cards||[]).map(c=>`<div class="tr-mini-card"><span>${c.icon}</span><span>${c.name}</span><span class="rarity-badge ${rColorsG[c.rarity]}" style="position:static;font-size:.58rem">${c.rarity}</span></div>`).join('')}</div>
+          <button class="btn btn-green" style="width:100%;padding:11px;font-size:.9rem;margin-top:10px" onclick="joinReadyTrade('${tid}','${n.from}')">⚡ Ready Up &amp; Join!</button>
+        </div>`;
+        db.ref('tradenotifs/'+safeKey+'/'+tid).remove();
+      });
+    }
+  }).catch(()=>{});
+  db.ref('trades/'+safeKey).once('value').then(snap=>{
+    const data=snap.val();
+    if(!data||!Object.keys(data).length){el.innerHTML='<p class="empty">No incoming trades</p>';return;}
+    const pending=Object.values(data).filter(t=>t.status==='pending');
+    if(!pending.length){el.innerHTML='<p class="empty">No pending trades</p>';return;}
+    const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+    el.innerHTML=pending.sort((a,b)=>b.timestamp-a.timestamp).map(t=>{
+      const initials=(t.from||'?').slice(0,2).toUpperCase();
+      const ago=Math.floor((Date.now()-t.timestamp)/60000);
+      const agoStr=ago<1?'just now':ago<60?ago+'m ago':Math.floor(ago/60)+'h ago';
+      return `<div class="trade-request-card">
+        <div class="tr-header">
+          <div class="tr-avatar">${initials}</div>
+          <div><div class="tr-from">${t.from}</div><div style="font-size:.72rem;color:#666">wants to trade</div></div>
+          <div class="tr-time">${agoStr}</div>
+        </div>
+        <div class="tr-offering-label">Their offer</div>
+        <div class="tr-cards-row">
+          ${(t.offering||[]).map(c=>`<div class="tr-mini-card"><span>${c.icon}</span><span>${c.name}</span><span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.58rem">${c.rarity}</span></div>`).join('')}
+        </div>
+        <div class="tr-wants">💬 Wants: <em>${t.wanting||'Make me an offer'}</em></div>
+        <div class="tr-actions">
+          <button class="btn btn-green" style="font-size:.85rem;padding:10px" onclick="openTradeRoomById('${t.id}','${t.from}')">🔄 Open Trade Room</button>
+          <button class="btn btn-red" style="font-size:.85rem;padding:10px" onclick="declineTrade('${t.id}','${t.from}')">❌ Decline</button>
+        </div>
+      </div>`;
+    }).join('');
+  }).catch(()=>{el.innerHTML='<p class="empty">Could not load trades</p>';});
+}
+
+// ── TRADE ROOM ────────────────────────────────────────────────────────────────
+function openTradeRoomById(tradeId, partner){
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('trades/'+safeKey+'/'+tradeId).once('value').then(snap=>{
+    const trade=snap.val();
+    if(!trade){notify('Trade not found');return;}
+    openTradeRoom(tradeId, partner, trade.offering||[]);
+  }).catch(()=>openTradeRoom(tradeId, partner, []));
+}
+
+function openTradeRoom(tradeId, partner, theirOffering){
+  currentTradeRoom={tradeId,partner,myCards:[],theirCards:theirOffering||[],myReady:false,theirReady:false};
+  document.getElementById('tradeRoomWith').textContent='Trading with: '+partner;
+  document.getElementById('mySideLabel').textContent='Your Cards';
+  document.getElementById('theirSideLabel').textContent=partner+"'s Cards";
+  const tro=document.getElementById('tradeRoomOverlay');tro.classList.remove('hidden');tro.style.display='';
+  renderTradeRoom();
+  // Start polling for updates
+  if(tradeRoomInterval) clearInterval(tradeRoomInterval);
+  tradeRoomInterval=setInterval(pollTradeRoom,2000);
+  // Save room state to Firebase
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('traderooms/'+tradeId).set({
+    player1:G.username,player2:partner,
+    p1Cards:[],p2Cards:theirOffering||[],
+    p1Ready:false,p2Ready:false,status:'open',created:Date.now()
+  });
+}
+
+function renderTradeRoom(){
+  if(!currentTradeRoom)return;
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  
+  // My cards
+  const myEl=document.getElementById('myTradeCards');
+  myEl.innerHTML=currentTradeRoom.myCards.map(c=>`
+    <div class="tr-card" onclick="removeFromRoom('${c.id}')">
+      <div class="tr-icon">${c.icon}</div>
+      <div class="tr-name">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem">${c.rarity}</span>
+    </div>`).join('')||'<p style="color:#555;font-size:.75rem">Add cards below</p>';
+  
+  // Their cards
+  const theirEl=document.getElementById('theirTradeCards');
+  theirEl.innerHTML=currentTradeRoom.theirCards.map(c=>`
+    <div class="tr-card" style="cursor:default">
+      <div class="tr-icon">${c.icon}</div>
+      <div class="tr-name">${c.name}</div>
+      <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.55rem">${c.rarity}</span>
+    </div>`).join('')||'<p style="color:#555;font-size:.75rem">Waiting...</p>';
+
+  // Inventory picker
+  const invEl=document.getElementById('myTRInv');
+  invEl.innerHTML=G.inv.filter(c=>!currentTradeRoom.myCards.find(m=>String(m.id)===String(c.id))).map(c=>`
+    <div onclick="addToRoom('${c.id}')" style="cursor:pointer;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:5px;text-align:center;width:60px;transition:all .15s" onmouseover="this.style.borderColor='#a855f7'" onmouseout="this.style.borderColor='#333'">
+      <div style="font-size:1.1rem">${c.icon}</div>
+      <div style="font-size:.58rem">${c.name}</div>
+    </div>`).join('');
+
+  // Ready buttons
+  const myBtn=document.getElementById('myReadyBtn');
+  const theirBtn=document.getElementById('theirReadyBtn');
+  myBtn.className='ready-btn '+(currentTradeRoom.myReady?'is-ready':'not-ready');
+  myBtn.textContent=currentTradeRoom.myReady?'✅ Ready!':'⚡ Ready Up';
+  theirBtn.textContent=currentTradeRoom.theirReady?'✅ They are ready!':'⏳ Waiting for '+currentTradeRoom.partner+'...';
+  theirBtn.className='ready-btn '+(currentTradeRoom.theirReady?'is-ready':'not-ready');
+
+  // Status
+  const statusEl=document.getElementById('tradeStatusBar');
+  const finalEl=document.getElementById('finalConfirm');
+  if(currentTradeRoom.myReady&&currentTradeRoom.theirReady){
+    statusEl.textContent='⚡ Both players ready!';
+    statusEl.style.color='#f5c518';
+    finalEl.style.display='';
+  } else {
+    statusEl.textContent=currentTradeRoom.myReady?'Waiting for '+currentTradeRoom.partner+'...':'Click Ready when you have set your cards';
+    statusEl.style.color='#aaa';
+    finalEl.style.display='none';
+  }
+}
+
+function addToRoom(id){
+  if(!currentTradeRoom)return;
+  if(currentTradeRoom.myCards.length>=5){notify('Max 5 cards');return;}
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(c){currentTradeRoom.myCards.push(c);currentTradeRoom.myReady=false;pushRoomState();renderTradeRoom();}
+}
+
+function removeFromRoom(id){
+  if(!currentTradeRoom)return;
+  currentTradeRoom.myCards=currentTradeRoom.myCards.filter(c=>String(c.id)!==String(id));
+  currentTradeRoom.myReady=false;pushRoomState();renderTradeRoom();
+}
+
+function pushRoomState(){
+  if(!currentTradeRoom)return;
+  const isP1=currentTradeRoom.partner!==undefined;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('traderooms/'+currentTradeRoom.tradeId).update({
+    p1Cards:currentTradeRoom.myCards,
+    p1Ready:currentTradeRoom.myReady
+  });
+}
+
+function toggleReady(){
+  if(!currentTradeRoom)return;
+  currentTradeRoom.myReady=!currentTradeRoom.myReady;
+  db.ref('traderooms/'+currentTradeRoom.tradeId).update({
+    p1Ready:currentTradeRoom.myReady,
+    p1Cards:currentTradeRoom.myCards,
+    p1Name:G.username
+  });
+  if(currentTradeRoom.myReady&&currentTradeRoom.myCards.length>0){
+    const partnerKey=currentTradeRoom.partner.replace(/[.#$\[\]]/g,'_');
+    db.ref('tradenotifs/'+partnerKey+'/'+currentTradeRoom.tradeId).set({
+      tradeId:currentTradeRoom.tradeId,from:G.username,
+      cards:currentTradeRoom.myCards,ready:true,timestamp:Date.now()
+    });
+  }
+  renderTradeRoom();
+}
+
+function joinReadyTrade(tradeId,partner){
+  db.ref('traderooms/'+tradeId).once('value').then(snap=>{
+    const room=snap.val();
+    openTradeRoom(tradeId,partner,room?room.p1Cards||[]:[]);
+    setTimeout(()=>{
+      if(currentTradeRoom){
+        currentTradeRoom.myReady=true;
+        db.ref('traderooms/'+tradeId).update({p2Ready:true,p2Name:G.username});
+        renderTradeRoom();
+      }
+    },600);
+  });
+}
+
+function pollTradeRoom(){
+  if(!currentTradeRoom)return;
+  db.ref('traderooms/'+currentTradeRoom.tradeId).once('value').then(snap=>{
+    const room=snap.val();
+    if(!room)return;
+    currentTradeRoom.theirReady=room.p2Ready||false;
+    currentTradeRoom.theirCards=room.p2Cards||currentTradeRoom.theirCards;
+    renderTradeRoom();
+  });
+}
+
+function confirmTrade(){
+  if(!currentTradeRoom||!currentTradeRoom.myReady||!currentTradeRoom.theirReady)return;
+  // Swap cards
+  currentTradeRoom.myCards.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  currentTradeRoom.theirCards.forEach(c=>G.inv.push({...c,id:Date.now()+Math.random()}));
+  G.trades++;
+  // Mark trade done
+  db.ref('traderooms/'+currentTradeRoom.tradeId+'/status').set('completed');
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('trades/'+safeKey+'/'+currentTradeRoom.tradeId+'/status').set('completed');
+  const partnerKey=currentTradeRoom.partner.replace(/[.#$\[\]]/g,'_');
+  db.ref('notifications/'+partnerKey).push({msg:G.username+' accepted the trade! Check your inventory.',time:Date.now()});
+  save();checkAchievements();renderInv();renderStats();checkDailyProgress();
+  cancelTradeRoom();
+  notify('✅ Trade complete! Cards swapped!');
+}
+
+function cancelTradeRoom(){
+  if(tradeRoomInterval)clearInterval(tradeRoomInterval);
+  currentTradeRoom=null;
+  const tro2=document.getElementById('tradeRoomOverlay');tro2.classList.add('hidden');tro2.style.display='none';
+}
+
+function declineTrade(tradeId, fromUser){
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('trades/'+safeKey+'/'+tradeId+'/status').set('declined').then(()=>{
+    const senderKey=fromUser.replace(/[.#$\[\]]/g,'_');
+    db.ref('notifications/'+senderKey).push({msg:G.username+' declined your trade request',time:Date.now()});
+    notify('Trade declined');
+    checkIncomingTrades();
+  });
+}
+
+function checkNotifications(){
+  if(!G.username)return;
+  const safeKey=G.username.replace(/[.#$\[\]]/g,'_');
+  db.ref('notifications/'+safeKey).once('value').then(snap=>{
+    const data=snap.val();
+    if(!data)return;
+    Object.entries(data).forEach(([k,v])=>{
+      if(!v.seen){notify('🔔 '+v.msg);db.ref('notifications/'+safeKey+'/'+k+'/seen').set(true);}
+    });
+  });
+}
+
+// ── FUSION ────────────────────────────────────────────────────────────────────
+let fuseSlots=[null,null,null];
+let fuseSelectOpen=-1;
+
+function renderFuseSlots(){
+  fuseSlots.forEach((c,i)=>{
+    const slot=document.getElementById('fslot-'+i);
+    if(c){slot.innerHTML=`<div>${c.icon}</div><div style="font-size:.7rem">${c.name}</div><div style="font-size:.65rem;color:var(--muted)">${c.rarity}</div>`;slot.classList.add('filled');}
+    else{slot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">+ Card ${i+1}</div>`;slot.classList.remove('filled');}
+  });
+  const resSlot=document.getElementById('fslot-result');
+  const allFilled=fuseSlots.every(s=>s!==null);
+  const sameRarity=allFilled&&fuseSlots.every(s=>s.rarity===fuseSlots[0].rarity);
+  document.getElementById('fuseBtn').disabled=!sameRarity;
+  if(allFilled&&sameRarity&&RARITY_UP[fuseSlots[0].rarity]){
+    const upRar=RARITY_UP[fuseSlots[0].rarity];
+    resSlot.innerHTML=`<div style="font-size:.8rem;color:var(--accent2)">${upRar.toUpperCase()}</div><div style="font-size:.7rem;color:var(--muted)">card</div>`;
+    document.getElementById('fuseMsg').innerHTML='';
+  } else if(allFilled&&sameRarity&&!RARITY_UP[fuseSlots[0].rarity]){
+    resSlot.innerHTML='<div style="font-size:.7rem;color:var(--red)">Max</div>';
+    document.getElementById('fuseBtn').disabled=true;
+    document.getElementById('fuseMsg').innerHTML='<span style="color:var(--red)">Mythics cannot be fused further</span>';
+  } else if(allFilled){
+    document.getElementById('fuseMsg').innerHTML='<span style="color:var(--red)">All 3 cards must be the same rarity!</span>';
+    resSlot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">?</div>`;
+  } else {
+    resSlot.innerHTML=`<div style="color:var(--muted);font-size:.8rem">Result</div>`;
+  }
+}
+
+function openFuseSelect(slot){
+  fuseSelectOpen=slot;
+  const avail=G.inv.filter(c=>!fuseSlots.includes(c));
+  if(!avail.length){notify('No cards in inventory!');return;}
+  const modal=document.createElement('div');
+  modal.className='modal-overlay';modal.id='fuseSelectModal';
+  modal.innerHTML=`<div class="modal"><h2>Select Card for Slot ${slot+1}</h2>
+    <div style="max-height:300px;overflow-y:auto">${avail.map(c=>`
+      <div onclick="selectFuseCard('${c.id}')" style="cursor:pointer;padding:8px;background:#2a2a3a;border-radius:8px;margin-bottom:6px;display:flex;align-items:center;gap:8px;font-size:.83rem">
+        <span style="font-size:1.2rem">${c.icon}</span><span style="flex:1">${c.name}</span><span style="color:var(--muted)">${c.rarity}</span>
+      </div>`).join('')}
+    </div>
+    <button class="btn-sm" onclick="document.getElementById('fuseSelectModal').remove()" style="margin-top:10px">Cancel</button>
+  </div>`;
+  document.body.appendChild(modal);
+}
+
+function selectFuseCard(id){
+  const c=G.inv.find(c=>String(c.id)===String(id));
+  if(c){fuseSlots[fuseSelectOpen]=c;}
+  document.getElementById('fuseSelectModal')?.remove();
+  renderFuseSlots();
+}
+
+function executeFuse(){
+  const rarity=fuseSlots[0].rarity;
+  const newRarity=RARITY_UP[rarity];
+  if(!newRarity){notify('Cannot fuse Mythics!');return;}
+  // Remove 3 cards from inv
+  fuseSlots.forEach(c=>{const i=G.inv.findIndex(x=>String(x.id)===String(c.id));if(i!==-1)G.inv.splice(i,1);});
+  // Generate new card of higher rarity
+  const pack=PACKS[Math.floor(Math.random()*PACKS.length)];
+  const pool=pack.cards.filter(c=>c.rarity===newRarity);
+  const base=pool.length?pool[Math.floor(Math.random()*pool.length)]:pack.cards[0];
+  const newCard={...base,id:Date.now()+Math.random(),rarity:newRarity};
+  G.inv.push(newCard);G.fusions++;
+  fuseSlots=[null,null,null];
+  save();checkAchievements();renderInv();renderStats();renderFuseSlots();
+  document.getElementById('fuseMsg').innerHTML=`<span style="color:var(--green)">✅ Fusion success! Got: ${newCard.icon} ${newCard.name} (${newRarity})</span>`;
+  notify(`⚗️ Fusion! Got a ${newRarity} card!`);
+}
+
+// ── DAILY CHALLENGES ──────────────────────────────────────────────────────────
+function checkDailies(){
+  const today=new Date().toDateString();
+  if(G.lastDaily!==today){
+    G.lastDaily=today;
+    const allDailies=[
+      {id:'open1',desc:'Open 1 pack',reward:75,target:1,progress:0,done:false,type:'packs'},
+      {id:'open3',desc:'Open 3 packs',reward:150,target:3,progress:0,done:false,type:'packs'},
+      {id:'sell5',desc:'Sell 5 cards',reward:100,target:5,progress:0,done:false,type:'sells'},
+      {id:'sell10',desc:'Sell 10 cards',reward:175,target:10,progress:0,done:false,type:'sells'},
+      {id:'earn200',desc:'Earn 200 coins',reward:150,target:200,progress:0,done:false,type:'earn'},
+      {id:'earn500',desc:'Earn 500 coins',reward:250,target:500,progress:0,done:false,type:'earn'},
+      {id:'fuse1',desc:'Fuse 1 set of cards',reward:200,target:1,progress:0,done:false,type:'fuse'},
+      {id:'auction1',desc:'Win an auction',reward:300,target:1,progress:0,done:false,type:'auction'},
+    ];
+    // Pick 3 random challenges for today
+    const shuffled=allDailies.sort(()=>Math.random()-.5);
+    G.dailies=shuffled.slice(0,3);
+    save();
+  }
+}
+
+function checkDailyProgress(){
+  let changed=false;
+  if(!G.dailies)return;
+  G.dailies.forEach(d=>{
+    if(d.done)return;
+    let prog=0;
+    if(d.type==='packs') prog=G.packsOpened;
+    else if(d.type==='sells') prog=G.sellCount||0;
+    else if(d.type==='earn') prog=G.totalEarned;
+    else if(d.type==='fuse') prog=G.fusions;
+    else if(d.type==='auction') prog=G.auctionWins;
+    d.progress=prog;
+    if(!d.done&&d.progress>=d.target){
+      d.done=true;G.coins+=d.reward;G.dailiesCompleted++;
+      notify(`🎯 Daily complete: "${d.desc}"! +${d.reward} coins`);
+      changed=true;
+    }
+  });
+  if(changed){save();updateCoins();checkAchievements();}
+  renderDailyChallenges();
+}
+
+function renderDailyChallenges(){
+  const el=document.getElementById('dailyChallenges');
+  if(!G.dailies||!G.dailies.length){el.innerHTML='';return;}
+  el.innerHTML=G.dailies.map(d=>`
+    <div class="daily-challenge${d.done?' done':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="daily-title">${d.done?'✅':''} ${d.desc}</div>
+        <div class="daily-reward">+${d.reward} 💰</div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${Math.min(100,Math.round((d.progress/d.target)*100))}%"></div></div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:3px">${d.progress}/${d.target}</div>
+    </div>
+  `).join('');
+}
+
+// ── ACHIEVEMENTS ──────────────────────────────────────────────────────────────
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(G.achDone.includes(a.id))return;
+    if(a.check(G)){G.achDone.push(a.id);G.coins+=a.reward;G.totalEarned+=a.reward;notify(`🏆 Achievement: ${a.name}! +${a.reward} coins`);updateCoins();}
+  });
+  save();renderAchievements();
+}
+
+function renderAchievements(){
+  const el=document.getElementById('achieveList');
+  el.innerHTML=ACHIEVEMENTS.map(a=>{
+    const done=G.achDone.includes(a.id);
+    return `<div class="achieve${done?' done':''}">
+      <div class="achieve-icon">${a.icon}</div>
+      <div class="achieve-info">
+        <div class="achieve-name">${a.name}</div>
+        <div class="achieve-desc">${a.desc}</div>
+        <div class="achieve-reward">${done?'✅ Claimed':'🎁 Reward: +'+a.reward+' coins'}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+function renderLB(by){
+  const el=document.getElementById('lbList');
+  saveLB();
+  el.innerHTML='<p class="empty" style="text-align:center">Loading rankings... 🔄</p>';
+  db.ref('leaderboard').once('value').then(snap=>{
+    const data=snap.val();
+    if(!data){el.innerHTML='<p class="empty">No players yet — be the first! 👑</p>';return;}
+    const players=Object.values(data).sort((a,b)=>(b[by]||0)-(a[by]||0));
+    el.innerHTML=players.map((p,i)=>{
+      const isYou=p.name===G.username;
+      let val='';
+      if(by==='coins') val='💰 '+(p.coins||0).toLocaleString();
+      else if(by==='cards') val='🃏 '+(p.cards||0);
+      else val='🔥 '+(p.mythics||0)+(p.gods?' + '+p.gods+' 👁️':'')+(p.cosmic?' + ✦':'');
+      return '<div class="lb-row" style="'+(isYou?'border:1px solid var(--accent2);background:#1a0030':'')+'">'
+        +'<div class="lb-rank'+(i<3?' top':'')+'">'+( i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1)+'</div>'
+        +'<div class="lb-name">'+(isYou?('<strong style="color:var(--accent2)">'+p.name+' (You)</strong>'):p.name)+'</div>'
+        +'<div class="lb-val">'+val+'</div>'
+        +'</div>';
+    }).join('');
+  }).catch(()=>{el.innerHTML='<p class="empty">Could not load rankings</p>';});
+}
+
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+let notifTimer=null;
+function notify(msg){
+  const el=document.getElementById('notif');
+  el.textContent=msg;el.classList.remove('hidden');
+  clearTimeout(notifTimer);notifTimer=setTimeout(()=>el.classList.add('hidden'),3000);
+}
+
+// ── ODDS ──────────────────────────────────────────────────────────────────────
+function renderOdds(){
+  const el=document.getElementById('oddsPackList');
+  if(!el)return;
+  const rColors={common:'r-common',rare:'r-rare',epic:'r-epic',legendary:'r-legendary',mythic:'r-mythic',god:'r-god',cosmic:'r-cosmic'};
+  const rarityChances={common:'50%',rare:'26%',epic:'13%',legendary:'7%',mythic:'3%',god:'0.9%',cosmic:'0.1%'};
+  
+  // Count rarity distribution in collection
+  const collectSummary={};
+  G.inv.forEach(c=>collectSummary[c.name]=(collectSummary[c.name]||0)+1);
+  
+  el.innerHTML=PACKS.map(p=>{
+    const totalCards=p.cards.length;
+    const owned=p.cards.filter(c=>G.inv.some(i=>i.name===c.name&&i.type===c.type)).length;
+    const rarityGroups={};
+    p.cards.forEach(c=>{rarityGroups[c.rarity]=(rarityGroups[c.rarity]||0)+1;});
+    
+    const rarityPctLines=Object.entries(rarityGroups).sort((a,b)=>{const RO=['cosmic','god','mythic','legendary','epic','rare','common'];return RO.indexOf(a[0])-RO.indexOf(b[0]);}).map(([r,count])=>`
+      <span class="rarity-badge ${rColors[r]}" style="position:static;margin-right:4px">${r.toUpperCase()}: ${rarityChances[r]||'?'}</span>`).join('');
+    
+    return `<div class="odds-pack">
+      <div class="odds-pack-header">
+        <span style="font-size:1.8rem">${p.icon}</span>
+        <div>
+          <div class="odds-pack-title">${p.name}</div>
+          <div style="font-size:.75rem;color:var(--muted)">💰 ${p.price} coins per pack</div>
+        </div>
+        <div class="odds-pack-collected">${owned}/${totalCards} cards collected</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">${rarityPctLines}</div>
+      ${[...p.cards].sort((a,b)=>{
+        const RO=['cosmic','god','mythic','legendary','epic','rare','common'];
+        return RO.indexOf(a.rarity)-RO.indexOf(b.rarity);
+      }).map(c=>{
+        const haveCount=(G.inv.filter(i=>i.name===c.name&&i.type===c.type).length);
+        return `<div class="odds-card-row">
+          <span style="font-size:1.1rem">${c.icon}</span>
+          <span style="flex:1;font-size:.82rem;font-weight:600">${c.name}</span>
+          <span class="rarity-badge ${rColors[c.rarity]}" style="position:static;font-size:.6rem">${c.rarity}</span>
+          <span class="odds-card-chance">${rarityChances[c.rarity]||'?'} pull</span>
+          <span style="color:var(--gold);font-size:.75rem;min-width:60px;text-align:right">${c.rarity==='cosmic'?'PRICELESS':'💰'+c.val}</span>
+          ${haveCount?`<span style="color:var(--green);font-size:.7rem;margin-left:6px">✓${haveCount>1?'×'+haveCount:''}</span>`:''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+init();
+</script>
+
+<!-- ADMIN PANEL -->
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:800;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#0f0f1a;border:2px solid #f5c518;border-radius:16px;padding:24px;max-width:440px;width:100%;max-height:85vh;overflow-y:auto">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2rem">⚙️</div>
+      <h2 style="color:#f5c518;font-size:1.1rem;margin-bottom:2px">Admin Panel</h2>
+      <p style="color:#555;font-size:.72rem">Code 3713</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <button onclick="adminDo('wipe')" style="background:#7f1d1d;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🗑️ Wipe All Users</button>
+      <button onclick="adminDo('coins')" style="background:#064e3b;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💰 Give 99999 Coins</button>
+      <button onclick="adminDo('allcards')" style="background:#312e81;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🃏 Get All Cards</button>
+      <button onclick="adminDo('cosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #00e5ff;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">✦ Unlock Cosmic</button>
+      <button onclick="adminDo('reset')" style="background:#374151;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">🔄 Reset My Account</button>
+      <button onclick="adminDo('users')" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">👥 View / Delete Users</button>
+      <button onclick="adminDo('sendcoins')" style="background:#064e3b;color:#10b981;border:1px solid #065f46;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem">💸 Send Real Coins</button>
+      <button onclick="adminDo('troll')" style="background:#78350f;color:#fbbf24;border:1px solid #f59e0b;border-radius:8px;padding:10px;cursor:pointer;font-size:.82rem;grid-column:1/-1">💀 Troll Panel</button>
+    </div>
+    <div id="adminMsg" style="font-size:.8rem;color:#aaa;min-height:16px;margin-bottom:8px;text-align:center"></div>
+    <div id="adminUserList" style="max-height:180px;overflow-y:auto;font-size:.75rem"></div>
+    <button onclick="document.getElementById('adminOverlay').style.display='none'" 
+      style="width:100%;margin-top:12px;background:#1a1a2e;border:1px solid #333;color:#888;border-radius:8px;padding:8px;cursor:pointer">Close</button>
+  </div>
+</div>
+
+<!-- TROLL PANEL -->
+<div id="trollOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:900;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#111;border:2px solid #f59e0b;border-radius:16px;padding:24px;max-width:420px;width:100%">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:2rem">💀</div>
+      <h2 style="color:#f59e0b;font-size:1.1rem">Troll Panel</h2>
+      <p style="color:#555;font-size:.72rem">For entertainment purposes only</p>
+    </div>
+    <div style="display:grid;gap:8px;margin-bottom:12px">
+      <button onclick="trollDo('fakeban')" style="background:#1a1a1a;color:#ef4444;border:1px solid #7f1d1d;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">🔨 Fake Ban Someone</button>
+      <button onclick="trollDo('fakeerror')" style="background:#1a1a1a;color:#f59e0b;border:1px solid #78350f;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">⚠️ Send Fake System Error</button>
+      <button onclick="trollDo('fakecosmic')" style="background:#001a4a;color:#00e5ff;border:1px solid #0e4a8a;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">✦ Fake Cosmic Announce</button>
+      <button onclick="trollDo('wipeself')" style="background:#1a1a1a;color:#a855f7;border:1px solid #4c1d95;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">👻 Tell Someone Their Account Was Deleted</button>
+      <button onclick="trollDo('givenothing')" style="background:#1a1a1a;color:#888;border:1px solid #374151;border-radius:8px;padding:10px;cursor:pointer;font-size:.85rem">💰 "Send" 99999 Coins to Someone (Fake)</button>
+    </div>
+    <div id="trollTarget" style="margin-bottom:8px">
+      <input type="text" id="trollUsername" placeholder="Target username..." style="width:100%;background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:7px;color:#eee;font-size:.85rem"/>
+    </div>
+    <div id="trollMsg" style="font-size:.8rem;color:#aaa;min-height:16px;text-align:center;margin-bottom:8px"></div>
+    <button onclick="document.getElementById('trollOverlay').style.display='none';document.getElementById('adminOverlay').style.display='flex';"
+      style="width:100%;background:#1a1a2e;border:1px solid #333;color:#888;border-radius:8px;padding:8px;cursor:pointer">← Back to Admin</button>
+  </div>
+</div>
+
+<script>
+function trollDo(action){
+  const target=(document.getElementById('trollUsername').value||'').trim();
+  const msg=document.getElementById('trollMsg');
+  if(!target){msg.innerHTML='<span style="color:#ef4444">Enter a username first</span>';return;}
+  const safeKey=target.replace(/[.#$\[\]]/g,'_');
+  if(action==='fakeban'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'🔨 Your account has been flagged for suspicious activity. You may be banned within 24 hours. Appeal at card.io/support',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#10b981">✅ Fake ban notice sent to '+target+'</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error sending</span>');
+  }
+  else if(action==='fakeerror'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'⚠️ SYSTEM ERROR: Your save data may be corrupted. Please re-open a pack to verify your account integrity.',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#10b981">✅ Fake error sent to '+target+'</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='fakecosmic'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'✦ BREAKING: Someone just pulled THE COSMIC card! The leaderboard has been shaken. Check your inventory...',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#00e5ff">✅ Fake cosmic announcement sent</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='wipeself'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'🗑️ NOTICE: Your account "'+target+'" has been scheduled for deletion due to inactivity. Log in within 1 hour to cancel.',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#a855f7">✅ Fake deletion notice sent</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+  else if(action==='givenothing'){
+    db.ref('notifications/'+safeKey).push({
+      msg:'💰 GIFT: The admin has sent you 99,999 coins as a special reward! Check your balance... (just kidding lol)',
+      time:Date.now()
+    }).then(()=>msg.innerHTML='<span style="color:#f5c518">✅ Fake coins sent to '+target+' 😂</span>')
+    .catch(()=>msg.innerHTML='<span style="color:#ef4444">❌ Error</span>');
+  }
+}
+</script>
+</body>
+</html>
