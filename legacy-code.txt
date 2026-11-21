@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card.io</title>
+<style>
+:root {
+--val-pink: #ff4d6d; --val-red: #c9184a;
+--gold: #ffb703; --mythic-purple: #9d4edd;
+--neon-green: #39ff14; --cyber-cyan: #00f3ff;
+--ocean-blue: #0077be; --forest-green: #2d6a4f;
+--horror-red: #8a0303; --kraken-ink: #1a1a2e;
+--food-orange: #ff8c00; --trick-orange: #ff7b00; --trick-purple: #7b00ff;
+--emerald-green: #50ffb1; --ruby-red: #ff0055; --diamond-blue: #b9f2ff;
+--cosmic-gold: #fff3b0; --lucky-green: #00ff41;
+--harvest: #e8772e; --cranberry: #9b1b30; --moon: #ffcf7a;
+--bg: #09090d; --panel: #13131a; --panel2: #1a1a23; --line: #262632; --muted: #8b8b9c; --text: #f2f2f5;
+}
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); text-align: center; margin: 0; padding-bottom: 60px; overflow-x: hidden;
+  background-image: radial-gradient(ellipse at top, rgba(201,24,74,0.12), transparent 60%); background-attachment: fixed; }
+.hidden { display: none !important; }
+button { font-family: inherit; }
+h2.title { font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 6px; }
+.sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+/* --- TRAIT STYLE --- */
+.upside-down { transform: rotate(180deg) !important; }
+
+/* --- ANIMATIONS --- */
+@keyframes shake {
+0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); }
+20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); }
+40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); }
+60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); }
+80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); }
+100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+.apply-shake { animation: shake 0.5s; animation-iteration-count: 2; }
+
+@keyframes kraken-waves { 0% { box-shadow: 0 0 15px var(--ocean-blue); } 50% { box-shadow: 0 0 40px var(--kraken-ink), 0 0 20px var(--cyber-cyan); } 100% { box-shadow: 0 0 15px var(--ocean-blue); } }
+@keyframes sasquatch-shake { 0%, 100% { transform: translateX(0); box-shadow: 0 0 15px var(--forest-green); } 50% { transform: translateX(2px); box-shadow: 0 0 30px #4b3621; } }
+@keyframes hacker-spark { 0%, 100% { box-shadow: 0 0 15px var(--cyber-cyan); } 50% { box-shadow: 0 0 35px var(--gold); } }
+@keyframes love-pulse { 0%, 100% { box-shadow: 0 0 10px var(--val-pink); } 50% { box-shadow: 0 0 40px var(--val-pink); } }
+@keyframes alien-glow { 0%, 100% { box-shadow: 0 0 10px var(--neon-green); } 50% { box-shadow: 0 0 30px var(--neon-green); } }
+@keyframes gold-shine { 0% { background-position: -200%; } 100% { background-position: 200%; } }
+@keyframes food-sizzle { 0%, 100% { box-shadow: 0 0 10px var(--food-orange); } 50% { box-shadow: 0 0 30px var(--gold); } }
+@keyframes trick-flicker { 0%, 100% { box-shadow: 0 0 15px var(--trick-purple); } 50% { box-shadow: 0 0 30px var(--trick-orange); } }
+@keyframes lucky-pulse { 0%, 100% { box-shadow: 0 0 10px var(--lucky-green); } 50% { box-shadow: 0 0 35px var(--gold); } }
+@keyframes gem-flash { 0%, 100% { box-shadow: 0 0 10px currentColor; filter: brightness(1); } 50% { box-shadow: 0 0 35px currentColor; filter: brightness(1.4); } }
+@keyframes cosmic-vortex { 0% { box-shadow: 0 0 20px #fff, inset 0 0 10px var(--mythic-purple); } 50% { box-shadow: 0 0 50px var(--gold), inset 0 0 30px var(--horror-red); transform: scale(1.02); } 100% { box-shadow: 0 0 20px #fff, inset 0 0 10px var(--mythic-purple); } }
+
+.emerald-aura { animation: gem-flash 2s infinite ease-in-out; border-color: var(--emerald-green) !important; color: var(--emerald-green) !important; }
+.ruby-aura { animation: gem-flash 1.5s infinite ease-in-out; border-color: var(--ruby-red) !important; color: var(--ruby-red) !important; }
+.diamond-aura { animation: gem-flash 1s infinite ease-in-out; border-color: var(--diamond-blue) !important; color: var(--diamond-blue) !important; }
+.cosmic-aura { animation: cosmic-vortex 4s infinite linear; border-color: #fff !important; color: var(--cosmic-gold) !important; background: radial-gradient(circle, #222, #000) !important; }
+.kraken-aura { animation: kraken-waves 3s infinite ease-in-out; border-color: var(--ocean-blue) !important; color: #add8e6 !important; }
+.hacker-aura { animation: hacker-spark 0.3s infinite alternate; border-color: var(--gold) !important; }
+.love-aura { animation: love-pulse 1.5s infinite ease-in-out; border-color: var(--val-pink) !important; color: var(--val-pink) !important; }
+.alien-aura { animation: alien-glow 2s infinite ease-in-out; border-color: var(--neon-green) !important; color: var(--neon-green) !important; }
+.sasquatch-aura { animation: sasquatch-shake 0.5s infinite; border-color: #4b3621 !important; color: #c27a3e !important; }
+.food-aura { animation: food-sizzle 1.5s infinite alternate; border-color: var(--food-orange) !important; color: var(--food-orange) !important; }
+.lucky-aura { animation: lucky-pulse 1.5s infinite ease-in-out; border-color: var(--lucky-green) !important; color: var(--lucky-green) !important; }
+.trick-style { background: linear-gradient(135deg, var(--trick-purple), var(--trick-orange)) !important; animation: trick-flicker 1s infinite alternate; border-color: #fff !important; color: white !important; text-shadow: 2px 2px 4px #000; }
+.pure-gold-style { background: linear-gradient(135deg, #bf953f, #fcf6ba, #b38728, #fcf6ba, #aa771c) !important; background-size: 400% 400% !important; animation: gold-shine 3s linear infinite !important; border-color: #fff !important; color: #4a3701 !important; }
+
+/* --- THANKFUL GOD-TIERS --- */
+@keyframes fan-sway { 0%,100% { transform: translateX(-50%) rotate(-6deg); } 50% { transform: translateX(-50%) rotate(6deg); } }
+@keyframes turkey-glow { 0%,100% { box-shadow: 0 0 14px #c1440e, 0 0 2px #fff inset; } 50% { box-shadow: 0 0 42px var(--gold), 0 0 8px #fff inset; } }
+@keyframes moon-rise { 0%,100% { transform: translate(-50%, 4px); box-shadow: 0 0 30px 6px rgba(255,160,60,.55); } 50% { transform: translate(-50%, -4px); box-shadow: 0 0 55px 14px rgba(255,190,90,.8); } }
+@keyframes leaves-fall { 0% { background-position: 0 -180px, 40px -120px, 80px -60px, 20px -200px; } 100% { background-position: 30px 200px, 10px 260px, 110px 320px, -20px 220px; } }
+@keyframes moon-glow { 0%,100% { box-shadow: 0 0 16px var(--harvest); } 50% { box-shadow: 0 0 40px var(--moon), 0 0 70px rgba(232,119,46,.4); } }
+@keyframes horn-sweep { 0% { transform: translateX(-160%) rotate(25deg); } 60%,100% { transform: translateX(260%) rotate(25deg); } }
+@keyframes horn-spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+.turkey-style { border-color: var(--gold) !important; color: #fff3d6 !important; animation: turkey-glow 1.6s infinite ease-in-out;
+  background: radial-gradient(circle at 50% 110%, #5a1e05, #1b0a03 70%) !important; }
+.turkey-style::before { content: ''; position: absolute; left: 50%; bottom: -40px; width: 230px; height: 230px; border-radius: 50%; z-index: 0;
+  background: repeating-conic-gradient(from 270deg at 50% 50%, #8b2500 0deg 9deg, #d2691e 9deg 18deg, #ffb703 18deg 27deg, #c1440e 27deg 36deg);
+  -webkit-mask: radial-gradient(circle, transparent 22%, #000 23%, #000 70%, transparent 71%); mask: radial-gradient(circle, transparent 22%, #000 23%, #000 70%, transparent 71%);
+  opacity: .85; animation: fan-sway 3s infinite ease-in-out; transform-origin: 50% 50%; }
+
+.moon-style { border-color: var(--moon) !important; color: var(--moon) !important; animation: moon-glow 2.4s infinite ease-in-out;
+  background: linear-gradient(180deg, #070b24 0%, #1d0f33 65%, #3a1606 100%) !important; }
+.moon-style::before { content: ''; position: absolute; left: 50%; top: 26px; width: 70px; height: 70px; border-radius: 50%; z-index: 0;
+  background: radial-gradient(circle at 38% 35%, #fff2c4, #ffb347 55%, #e8772e 100%); animation: moon-rise 4s infinite ease-in-out; }
+.moon-style::after { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-image: radial-gradient(4px 2px at 50% 50%, #e8772e, transparent), radial-gradient(4px 2px at 50% 50%, #9b1b30, transparent), radial-gradient(3px 2px at 50% 50%, #ffb703, transparent), radial-gradient(4px 2px at 50% 50%, #c1440e, transparent);
+  background-size: 140px 180px; background-repeat: repeat; animation: leaves-fall 6s infinite linear; }
+
+.horn-style { border-color: #ffd36b !important; color: #ffe8a8 !important;
+  background: linear-gradient(140deg, #2a1708 0%, #6b3d14 45%, #9b1b30 100%) !important; box-shadow: 0 0 30px rgba(255,183,3,.55); }
+.horn-style::before { content: ''; position: absolute; top: -20%; left: 0; width: 40%; height: 140%; z-index: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,243,176,.55), transparent); animation: horn-sweep 2.6s infinite ease-in-out; }
+.horn-style::after { content: ''; position: absolute; left: 50%; top: 42%; width: 96px; height: 96px; border-radius: 50%; z-index: 0;
+  border: 3px dashed rgba(255,211,107,.75); animation: horn-spin 8s infinite linear; }
+
+/* --- PACK TILE AURAS --- */
+.aura-school { --pc: #ffffff; } .aura-castle { --pc: var(--gold); } .aura-cyber { --pc: var(--cyber-cyan); }
+.aura-horror { --pc: #e0242a; } .aura-space { --pc: var(--mythic-purple); } .aura-forest { --pc: #3fae6f; }
+.aura-ocean { --pc: #2b9be0; } .aura-food { --pc: var(--food-orange); } .aura-gold-pack { --pc: var(--gold); }
+.aura-cave { --pc: var(--emerald-green); } .aura-thankful-pack { --pc: var(--harvest); }
+
+/* --- CARDS --- */
+.card { width: 128px; height: 180px; border-radius: 12px; border: 3px solid #3a3a46; background: linear-gradient(165deg, #1d1d26, #101016);
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 8px 6px; margin: 6px; vertical-align: top;
+  position: relative; overflow: hidden; color: #cfd2da; }
+.card > * { position: relative; z-index: 1; }
+.card-rar { font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; padding: 2px 7px; border-radius: 20px; background: rgba(0,0,0,.6); color: inherit; border: 1px solid currentColor; }
+.card-art { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-style: italic; font-size: 24px;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), rgba(0,0,0,.35)); border: 2px solid currentColor; color: inherit; }
+.card-name { font-weight: 800; font-size: 12.5px; line-height: 1.15; color: #fff; text-shadow: 0 1px 3px #000; min-height: 29px; display: flex; align-items: center; }
+.card-val { font-size: 11px; font-weight: 700; color: #ddd; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 6px; }
+.card .cbtn { margin-top: 4px; font-size: 10px; font-weight: 800; border: none; border-radius: 6px; padding: 4px 10px; cursor: pointer; background: #fff; color: #111; text-transform: uppercase; }
+.card .cbtn.stage { background: var(--gold); }
+.common { border-color: #555763; color: #a8acb6; }
+.legendary { border-color: var(--gold); color: var(--gold); background: linear-gradient(165deg, #2a2108, #110e05); }
+.mythic { border-color: var(--mythic-purple); color: #c79bff; background: linear-gradient(165deg, #23123a, #0f0818); }
+.god-tier { border-color: var(--val-pink); color: var(--val-pink); background: linear-gradient(165deg, #33101a, #12060a); }
+.cosmic { border-color: #fff; color: var(--cosmic-gold); }
+.thankful-art .card-art { background: transparent; border-color: transparent; }
+
+/* reveal (wrapper so upside-down cards still animate) */
+@keyframes flip-in { 0% { transform: rotateY(90deg) scale(.8); opacity: 0; } 100% { transform: rotateY(0) scale(1); opacity: 1; } }
+.reveal { display: inline-block; animation: flip-in .45s both cubic-bezier(.2,.9,.3,1.3); perspective: 600px; }
+
+/* --- TOP BAR --- */
+.topbar { position: sticky; top: 0; z-index: 100; background: rgba(12,12,17,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.topbar-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; gap: 10px; }
+.brand { font-weight: 900; font-style: italic; font-size: 22px; letter-spacing: .5px; }
+.brand span { color: var(--val-pink); }
+.wallet { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.wallet .who { color: var(--muted); }
+.coins { background: linear-gradient(135deg, #3a2a05, #1d1503); border: 1px solid var(--gold); color: var(--gold); font-weight: 800; padding: 5px 12px; border-radius: 20px; }
+.tabs { display: flex; overflow-x: auto; padding: 0 8px; gap: 2px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab-btn { background: none; border: none; color: var(--muted); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: .6px; padding: 10px 14px; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+.tab-btn:hover { color: #fff; }
+.tab-btn.active { color: #fff; border-bottom-color: var(--val-pink); }
+
+.btn { background: var(--panel2); color: #fff; border: 1px solid var(--line); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 12.5px; margin: 3px; }
+.btn:hover { border-color: #444456; }
+.btn.primary { background: var(--val-red); border-color: var(--val-pink); }
+.btn.gold { background: var(--gold); color: #1a1200; border-color: var(--gold); }
+.btn.purple { background: var(--mythic-purple); border-color: var(--mythic-purple); }
+.btn.cyan { background: var(--cyber-cyan); color: #00262a; border-color: var(--cyber-cyan); }
+input.field, textarea.field { background: var(--panel2); border: 1px solid var(--line); color: #fff; padding: 9px 12px; border-radius: 8px; font-size: 14px; outline: none; }
+input.field:focus, textarea.field:focus { border-color: var(--val-pink); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 14px; }
+
+/* --- LOGIN --- */
+#login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 2000;
+  background: radial-gradient(circle at 50% 30%, #4a0a1f, #09090d 70%); }
+.login-card { width: 320px; padding: 34px 26px; border-radius: 18px; background: var(--panel); border: 1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+.login-card h1 { margin: 0 0 4px; font-size: 40px; font-weight: 900; font-style: italic; }
+.login-card h1 span { color: var(--val-pink); }
+.login-card input { width: 100%; margin-top: 18px; }
+.login-card .btn { width: 100%; margin: 14px 0 0; padding: 12px; font-size: 15px; }
+
+/* --- SHOP --- */
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 14px 0; }
+.pack { position: relative; border-radius: 14px; padding: 14px 10px 12px; cursor: pointer; text-align: center; border: 2px solid var(--pc); overflow: hidden;
+  background: linear-gradient(170deg, color-mix(in srgb, var(--pc) 22%, #15151c), #0e0e13 70%); box-shadow: 0 0 14px color-mix(in srgb, var(--pc) 35%, transparent); transition: transform .12s; }
+.pack:hover { transform: translateY(-3px); }
+.pack:active { transform: scale(.97); }
+.pack .pname { font-weight: 900; font-style: italic; font-size: 18px; text-transform: uppercase; color: #fff; }
+.pack .pchase { font-size: 11px; color: var(--muted); margin: 6px 0 10px; min-height: 28px; }
+.pack .pchase b { color: var(--pc); }
+.pack .pcost { display: inline-block; font-weight: 800; color: var(--gold); background: rgba(0,0,0,.5); padding: 4px 12px; border-radius: 20px; font-size: 13px; }
+.pack .pcount { font-size: 10px; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 1px; }
+.pack .ptag { position: absolute; top: 8px; right: -26px; transform: rotate(35deg); background: var(--harvest); color: #1b0a03; font-weight: 900; font-size: 10px; padding: 2px 30px; }
+.pack.thankful { background: linear-gradient(160deg, #6b2a0c, #2a1006 55%, #12080a); }
+.pack.thankful::after { content: ''; position: absolute; top: 0; left: 0; width: 40%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,207,122,.25), transparent); animation: horn-sweep 3s infinite ease-in-out; pointer-events: none; }
+#pack-opening-results { padding: 10px 0 20px; display: flex; justify-content: center; flex-wrap: wrap; min-height: 10px; }
+.results-head { width: 100%; font-weight: 900; font-style: italic; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+
+/* --- AUCTION --- */
+.auction-grid { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 10px 0; }
+.lot { width: 220px; padding: 12px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); transition: .25s; }
+.lot.winning-bid { border-color: var(--neon-green); box-shadow: 0 0 18px rgba(57,255,20,.35); }
+.lot.outbid { border-color: var(--val-pink); }
+.lot .row { display: flex; justify-content: space-between; font-size: 12.5px; margin: 4px 2px; }
+.lot .row span:first-child { color: var(--muted); }
+.lot .who-top { font-weight: 800; }
+.lot .who-top.you { color: var(--neon-green); }
+.lot .feed { font-size: 11px; color: var(--muted); min-height: 15px; margin: 4px 0 8px; }
+.lot .bidrow { display: flex; gap: 6px; }
+.lot .bidrow input { width: 100%; padding: 7px 8px; font-size: 13px; }
+.lot .bidrow .btn { margin: 0; }
+.timer { font-size: 38px; font-weight: 900; font-style: italic; color: var(--gold); margin: 6px 0 0; font-variant-numeric: tabular-nums; }
+.timer.hot { color: var(--val-pink); }
+
+/* --- INVENTORY / RANKINGS / ODDS --- */
+.toolbar { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; margin: 12px 0; }
+.ranking-table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 12px; overflow: hidden; font-size: 13.5px; }
+.ranking-table th { background: var(--panel2); color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+.ranking-table th, .ranking-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+.ranking-table tr { cursor: pointer; }
+.ranking-table tbody tr:hover { background: #1c1c26; }
+.offsale { color: var(--val-pink); font-weight: 800; letter-spacing: .5px; }
+.odds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 12px 0; text-align: left; }
+.odds-box { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; }
+.odds-box h4 { margin: 0 0 6px; font-style: italic; text-transform: uppercase; }
+.odds-box div { display: flex; justify-content: space-between; padding: 2px 0; }
+.odds-box.legacy { border-color: var(--val-pink); background: linear-gradient(160deg, rgba(255,77,109,.14), var(--panel)); }
+
+/* --- MODALS / TOAST --- */
+#card-modal, #big-reveal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 3000; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.close-modal { position: absolute; top: 14px; left: 18px; font-size: 38px; color: white; cursor: pointer; background: none; border: none; font-weight: bold; }
+.modal-stats { margin-top: 18px; text-align: left; background: var(--panel); padding: 18px 22px; border-radius: 14px; border: 1px solid var(--line); min-width: 260px; }
+.modal-stats h2 { margin: 0 0 10px; font-style: italic; }
+.modal-stats p { margin: 6px 0; display: flex; justify-content: space-between; gap: 20px; }
+.modal-stats p span { color: var(--muted); }
+#big-reveal .rays { position: absolute; width: 900px; height: 900px; background: repeating-conic-gradient(rgba(232,119,46,.18) 0 10deg, transparent 10deg 20deg); border-radius: 50%; animation: horn-spin 20s linear infinite; left: 50%; top: 50%; transform: translate(-50%,-50%); -webkit-mask: radial-gradient(circle, #000 20%, transparent 65%); mask: radial-gradient(circle, #000 20%, transparent 65%); }
+#big-reveal .big { transform: scale(1.7); margin: 70px 0 60px; position: relative; }
+#big-reveal h1 { position: relative; font-size: 34px; font-weight: 900; font-style: italic; text-transform: uppercase; margin: 0; color: var(--moon); text-shadow: 0 0 20px var(--harvest); }
+#big-reveal p { position: relative; color: var(--muted); }
+#toasts { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 4000; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.toast { background: #1b1b24; border: 1px solid var(--line); border-left: 4px solid var(--val-pink); padding: 10px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,.5); animation: flip-in .25s both; }
+.toast.good { border-left-color: var(--neon-green); }
+.toast.gold { border-left-color: var(--gold); }
+@media (max-width: 520px) { .card { width: 112px; height: 164px; margin: 4px; } .lot { width: 100%; max-width: 330px; } .brand { font-size: 19px; } }
+</style>
+</head>
+<body id="main-body">
+
+<div id="toasts"></div>
+
+<div id="card-modal" class="hidden" onclick="if(event.target===this)closeModal()">
+<button class="close-modal" onclick="closeModal()">×</button>
+<div id="modal-card-render"></div>
+<div class="modal-stats" id="modal-stats-content"></div>
+</div>
+
+<div id="big-reveal" class="hidden" onclick="this.classList.add('hidden')">
+<div class="rays"></div>
+<h1 id="big-reveal-title">Thankful Pull</h1>
+<div class="big" id="big-reveal-card"></div>
+<p>Tap anywhere to continue</p>
+</div>
+
+<div id="login-screen">
+<div class="login-card">
+<h1>Card<span>.io</span></h1>
+<div class="sub">Open packs. Win auctions. Collect them all.</div>
+<input type="text" class="field" id="user-name-input" placeholder="Username" onkeydown="if(event.key==='Enter')login()">
+<button class="btn primary" onclick="login()">Enter Shop</button>
+</div>
+</div>
+
+<div id="game-ui" class="hidden">
+<div class="topbar">
+<div class="topbar-row">
+<div class="brand">Card<span>.io</span></div>
+<div class="wallet"><span class="who" id="display-username"></span><span class="coins"><span id="coin-count">500</span> c</span></div>
+</div>
+<div class="tabs" id="tabs">
+<button class="tab-btn active" data-tab="shop" onclick="showTab('shop')">Shop</button>
+<button class="tab-btn" data-tab="auction" onclick="showTab('auction')">Auction House</button>
+<button class="tab-btn" data-tab="collection" onclick="showTab('collection')">Inventory</button>
+<button class="tab-btn" data-tab="trade" onclick="showTab('trade')">Trade</button>
+<button class="tab-btn" data-tab="rankings" onclick="showTab('rankings')">Rankings</button>
+<button class="tab-btn" data-tab="odds" onclick="showTab('odds')">Odds</button>
+<button class="tab-btn" data-tab="data" onclick="showTab('data')">Data</button>
+</div>
+</div>
+
+<div class="wrap">
+<div id="shop-tab" class="tab-content">
+<div id="shop-container" class="shop-grid"></div>
+<div id="pack-opening-results"></div>
+</div>
+
+<div id="auction-tab" class="tab-content hidden">
+<div class="timer" id="auction-timer">02:00</div>
+<p class="sub">Other collectors are bidding too. Get outbid and your coins come back.</p>
+<div id="auction-list" class="auction-grid"></div>
+</div>
+
+<div id="collection-tab" class="tab-content hidden">
+<div class="toolbar">
+<input type="text" class="field" id="inventory-search" placeholder="Search cards..." oninput="renderCollection()" style="width:200px;">
+<button class="btn" onclick="bulkSell('common')">Sell Commons</button>
+<button class="btn gold" onclick="bulkSell('legendary')">Sell Legendaries</button>
+<button class="btn purple" onclick="bulkSell('mythic')">Sell Mythics</button>
+<button class="btn cyan" onclick="sortInventoryByValue()">Sort by Value</button>
+</div>
+<p class="sub" id="inv-summary"></p>
+<div id="collection-list"></div>
+</div>
+
+<div id="rankings-tab" class="tab-content hidden">
+<h2 class="title" style="color:var(--gold);">Global Card Rankings</h2>
+<div class="toolbar">
+<button class="btn" id="rk-v" onclick="renderRankings('v')">Sort by Money</button>
+<button class="btn" id="rk-ch" onclick="renderRankings('ch')">Sort by Rarest</button>
+</div>
+<table class="ranking-table">
+<thead><tr><th>Rank</th><th>Card Name</th><th>Sell Value</th><th>Pull Rate</th><th>Rarity</th></tr></thead>
+<tbody id="rankings-list"></tbody>
+</table>
+</div>
+
+<div id="trade-tab" class="tab-content hidden">
+<h2 class="title" style="color:var(--cyber-cyan);">Trading Center</h2>
+<div style="display:flex; gap:12px; flex-wrap:wrap;">
+<div class="panel" style="flex:1; min-width:280px;">
+<h3 style="margin-top:0;">Stage Cards (Max 5)</h3>
+<div id="staged-cards-list" style="min-height:190px; border:2px dashed var(--line); border-radius:12px; padding:6px;"></div>
+<p class="sub" style="margin-top:6px;">Tap a staged card to put it back.</p>
+<button class="btn primary" onclick="generateTradeCode()">Generate Package Code</button>
+<input type="text" class="field" id="output-trade-code" readonly placeholder="Your code shows here" style="width:100%; margin-top:8px; color:#5f5; font-size:11px;">
+</div>
+<div class="panel" style="flex:1; min-width:280px;">
+<h3 style="margin-top:0;">Receive Package</h3>
+<input type="text" class="field" id="input-trade-code" placeholder="Paste friend's code here..." style="width:100%;">
+<button class="btn" onclick="receiveTradeCode()" style="margin-top:10px; background:var(--neon-green); color:#031; border-color:var(--neon-green);">Claim Cards</button>
+</div>
+</div>
+<h3>Select From Inventory to Stage</h3>
+<div id="trade-inventory-list" style="display:flex; flex-wrap:wrap; justify-content:center;"></div>
+</div>
+
+<div id="odds-tab" class="tab-content hidden">
+<div id="odds-display" class="odds-grid"></div>
+</div>
+
+<div id="data-tab" class="tab-content hidden">
+<h2 class="title">Save Data</h2>
+<p class="sub">Your game also saves on this device automatically.</p>
+<textarea id="data-box" class="field" style="width:100%; max-width:700px; height:150px; color:#5f5; font-family:monospace; font-size:12px;"></textarea><br>
+<button class="btn" onclick="exportData()">Export</button>
+<button class="btn primary" onclick="importData()">Import</button>
+</div>
+</div>
+</div>
+
+<script>
+let userData = { coins: 500, inventory: [], name: "" };
+let auctionTime = 120;
+let auctionItems = [];
+let stagedCards = [];
+let glitchAnnounced = false;
+let auctionTimer = null;
+let botTimers = [];
+let bidDrafts = {};
+
+const packData = {
+school: { cost: 15, aura: 'aura-school', cards: [{n:"Pencil",r:"common",v:5,ch:40}, {n:"Teacher",r:"legendary",v:110,ch:15}, {n:"Scholar",r:"mythic",v:400,ch:5}, {n:"Paper",r:"common",v:5,ch:30}, {n:"Eraser",r:"common",v:5,ch:10}]},
+castle: { cost: 30, aura: 'aura-castle', cards: [{n:"Stone",r:"common",v:5,ch:40}, {n:"Knight",r:"legendary",v:150,ch:15}, {n:"King",r:"mythic",v:600,ch:5}, {n:"Shield",r:"common",v:5,ch:40}]},
+cyber: { cost: 50, aura: 'aura-cyber', cards: [{n:"Wire",r:"common",v:8,ch:40}, {n:"Neural Link",r:"legendary",v:400,ch:15}, {n:"THE HACKER",r:"god-tier hacker-aura",v:15000,ch:0.05}, {n:"Chip",r:"common",v:10,ch:44.95}]},
+horror: { cost: 66, aura: 'aura-horror', cards: [{n:"Bone",r:"common",v:10,ch:39.91}, {n:"Ghost",r:"legendary",v:333,ch:15}, {n:"Slasher",r:"mythic",v:800,ch:5}, {n:"Mask",r:"common",v:20,ch:40}, {n:"TRICK O TREAT",r:"god-tier trick-style",v:12000,ch:0.09}]},
+space: { cost: 80, aura: 'aura-space', cards: [{n:"Dust",r:"common",v:5,ch:40}, {n:"Alien",r:"legendary",v:300,ch:15}, {n:"AREA 51",r:"god-tier alien-aura",v:6000,ch:0.25}, {n:"Astronaut",r:"mythic",v:500,ch:44.75}]},
+forest: { cost: 100, aura: 'aura-forest', cards: [{n:"Leaf",r:"common",v:5,ch:40}, {n:"Wolf",r:"legendary",v:250,ch:15}, {n:"SASQUATCH",r:"god-tier sasquatch-aura",v:10000,ch:0.1}, {n:"Twig",r:"common",v:5,ch:44.9}]},
+ocean: { cost: 100, aura: 'aura-ocean', cards: [{n:"Sand",r:"common",v:5,ch:40}, {n:"Shark",r:"legendary",v:300,ch:15}, {n:"KRAKEN",r:"god-tier kraken-aura",v:13500,ch:0.2}, {n:"Shell",r:"common",v:5,ch:44.8}]},
+thankful: { cost: 150, aura: 'aura-thankful-pack', isNew: true, cards: [{n:"Acorn",r:"common",v:10,ch:30}, {n:"Maple Leaf",r:"common",v:10,ch:25}, {n:"Corn Cob",r:"common",v:15,ch:20}, {n:"Pumpkin Pie",r:"legendary",v:220,ch:15}, {n:"Harvest Feast",r:"mythic",v:750,ch:9.94}, {n:"GOLDEN TURKEY",r:"god-tier turkey-style",v:20000,ch:0.03}, {n:"HARVEST MOON",r:"god-tier moon-style",v:30000,ch:0.02}, {n:"CORNUCOPIA",r:"god-tier horn-style",v:45000,ch:0.01}]},
+food: { cost: 75, aura: 'aura-food', cards: [{n:"Apple",r:"common",v:5,ch:25}, {n:"Bread",r:"common",v:5,ch:20}, {n:"Cheese",r:"common",v:5,ch:20}, {n:"Fries",r:"common",v:8,ch:14.93}, {n:"Pizza",r:"legendary",v:120,ch:10}, {n:"Burger",r:"legendary",v:150,ch:5}, {n:"Sushi",r:"legendary",v:280,ch:3}, {n:"Lobster",r:"mythic",v:700,ch:1}, {n:"Caviar",r:"mythic",v:900,ch:1}, {n:"GOLDEN STEAK",r:"god-tier food-aura",v:12500,ch:0.07}]},
+golden: { cost: 10000, aura: 'aura-gold-pack', cards: [{n:"Gold Bar",r:"legendary",v:600,ch:50}, {n:"PURE GOLD",r:"god-tier pure-gold-style",v:50000,ch:0.01}, {n:"Jackpot",r:"mythic",v:2000,ch:49.99}]},
+cave: { cost: 17500, aura: 'aura-cave', cards: [{n:"Stone",r:"common",v:10,ch:30}, {n:"Coal",r:"common",v:15,ch:25}, {n:"Iron Ore",r:"legendary",v:150,ch:12.4295}, {n:"Gold Ore",r:"legendary",v:250,ch:10}, {n:"Crystal",r:"mythic",v:600,ch:10}, {n:"Obsidian",r:"mythic",v:850,ch:12}, {n:"EMERALD",r:"god-tier emerald-aura",v:20000,ch:0.02}, {n:"RUBY",r:"god-tier ruby-aura",v:20000,ch:0.02}, {n:"DIAMOND",r:"god-tier diamond-aura",v:32500,ch:0.01}, {n:"ANCIENT FOSSIL",r:"cosmic cosmic-aura",v:100000,ch:0.0005}]}
+};
+
+// Offsale (legacy) cards. Order here = rarity order: LEPRECHAUN is #1, I LOVE YOU is #2.
+const LEGACY = ["LEPRECHAUN", "I LOVE YOU"];
+const hiddenData = {
+legacy: { cards: [{n:"LEPRECHAUN",r:"god-tier lucky-aura",v:75000,ch:0.008}, {n:"I LOVE YOU",r:"god-tier love-aura",v:15000,ch:0.5}]},
+valentine: { cards: [{n:"Rose",r:"common",v:5,ch:40}, {n:"Cupid",r:"legendary",v:250,ch:20}, {n:"Soulmate",r:"mythic",v:900,ch:39.5}]}
+};
+const isOffsale = c => LEGACY.includes(c.n);
+const THANKFUL_GODS = ["GOLDEN TURKEY", "HARVEST MOON", "CORNUCOPIA"];
+
+const GOD_COLORS = { "THE HACKER":"var(--cyber-cyan)", "SASQUATCH":"#3fae6f", "KRAKEN":"#2b9be0", "PURE GOLD":"var(--gold)", "AREA 51":"var(--neon-green)",
+"GOLDEN STEAK":"var(--food-orange)", "EMERALD":"var(--emerald-green)", "RUBY":"var(--ruby-red)", "DIAMOND":"var(--diamond-blue)", "ANCIENT FOSSIL":"var(--cosmic-gold)",
+"TRICK O TREAT":"linear-gradient(to right, #a050ff, var(--trick-orange))", "LEPRECHAUN":"var(--lucky-green)", "I LOVE YOU":"var(--val-pink)",
+"GOLDEN TURKEY":"linear-gradient(to right, #ffb703, #c1440e)", "HARVEST MOON":"var(--moon)", "CORNUCOPIA":"linear-gradient(to right, #ffe8a8, #e8772e, #ff4d6d)" };
+
+const BOT_NAMES = ["CardShark", "PackRat99", "Mythic_Mike", "GoldDigger", "xKrakenx", "NightOwl", "BidLord", "TurkeyTom", "LuckyLou", "SnipeQueen", "VaultBoy", "HoloHunter"];
+
+const fmt = n => Number(n).toLocaleString('en-US');
+const rand = (a, b) => a + Math.random() * (b - a);
+function allCards() {
+  let out = [];
+  [...Object.values(packData), ...Object.values(hiddenData)].forEach(p => p.cards.forEach(c => { if(!out.find(x => x.n === c.n)) out.push(c); }));
+  return out;
+}
+
+function toast(msg, kind = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind; t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function isGlitchActive() {
+  const d = new Date();
+  if (d.getDay() === 3 && d.getHours() === 16 && d.getMinutes() < 30) {
+    if (!glitchAnnounced) { toast("THE WEDNESDAY GLITCH IS ON. Cards may come out upside down!", 'gold'); glitchAnnounced = true; }
+    return true;
+  }
+  return false;
+}
+
+/* ---------- SAVE ---------- */
+function saveKey(name) { return 'cardio-save-' + name.toLowerCase(); }
+function save() {
+  if(!userData.name) return;
+  const escrow = auctionItems.reduce((s, it) => s + (it.top === "YOU" ? it.mine : 0), 0);
+  try { localStorage.setItem(saveKey(userData.name), JSON.stringify({ ...userData, coins: userData.coins + escrow, inventory: [...userData.inventory, ...stagedCards] })); } catch(e) {}
+}
+
+function login() {
+  const name = document.getElementById('user-name-input').value.trim() || "Collector";
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(saveKey(name))); } catch(e) {}
+  userData = saved && Array.isArray(saved.inventory) ? saved : { coins: 500, inventory: [], name };
+  userData.name = name;
+  document.getElementById('display-username').innerText = userData.name;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('game-ui').classList.remove('hidden');
+  renderPacks(); renderOdds(); generateAuction(); updateUI();
+  if(saved) toast("Welcome back, " + name + ". Save loaded.", 'good');
+  clearInterval(auctionTimer); auctionTimer = setInterval(tickAuction, 1000);
+}
+
+/* ---------- CARDS ---------- */
+function initials(n) { const w = n.replace(/[^A-Za-z0-9 ]/g, '').split(' ').filter(Boolean); return (w.length > 1 ? w[0][0] + w[1][0] : n.slice(0, 2)).toUpperCase(); }
+
+function createCardHTML(card, showButton = false, tradeMode = false) {
+  const parts = card.r.split(' ');
+  const rarity = parts[0];
+  const auraClass = parts[1] || '';
+  const glitchClass = card.trait === 'upside-down' ? 'upside-down' : '';
+  const thankful = THANKFUL_GODS.includes(card.n) ? 'thankful-art' : '';
+  let btn = '';
+  if(showButton) btn = `<button class="cbtn" onclick="event.stopPropagation(); sell(${card.id})">Sell</button>`;
+  if(tradeMode) btn = `<button class="cbtn stage" onclick="event.stopPropagation(); stageForTrade(${card.id})">Stage</button>`;
+  return `<div class="card ${rarity} ${auraClass} ${glitchClass} ${thankful}"><span class="card-rar">${rarity}</span><div class="card-art">${thankful ? '' : initials(card.n)}</div><div class="card-name">${card.n}</div><span class="card-val">${fmt(card.v)} c</span>${btn}</div>`;
+}
+
+function rarityOrder() {
+  const all = allCards();
+  const legacy = LEGACY.map(n => all.find(c => c.n === n));
+  return [...legacy, ...all.filter(c => !isOffsale(c)).sort((a, b) => a.ch - b.ch)];
+}
+
+function openCardDetail(cardName) {
+  const all = allCards();
+  const card = all.find(c => c.n === cardName);
+  if(!card) return;
+  const moneyRank = [...all].sort((a, b) => b.v - a.v).findIndex(c => c.n === cardName) + 1;
+  const rarityRank = rarityOrder().findIndex(c => c.n === cardName) + 1;
+  document.getElementById('modal-card-render').innerHTML = createCardHTML(card);
+  document.getElementById('modal-stats-content').innerHTML = `<h2>${card.n}</h2>
+    <p><span>Value</span><b>${fmt(card.v)} Coins</b></p>
+    <p><span>Status</span><b class="${isOffsale(card) ? 'offsale' : ''}">${isOffsale(card) ? 'OFFSALE' : card.ch + '%'}</b></p>
+    <p><span>Money Rank</span><b>#${moneyRank}</b></p>
+    <p><span>Rarity Rank</span><b>#${rarityRank}</b></p>`;
+  document.getElementById('card-modal').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('card-modal').classList.add('hidden'); }
+
+function renderRankings(sortBy = 'v') {
+  let list = sortBy === 'v' ? allCards().sort((a, b) => b.v - a.v) : rarityOrder();
+  document.getElementById('rk-v').classList.toggle('primary', sortBy === 'v');
+  document.getElementById('rk-ch').classList.toggle('primary', sortBy !== 'v');
+  document.getElementById('rankings-list').innerHTML = list.map((c, i) => `
+<tr onclick="openCardDetail('${c.n}')">
+<td>#${i + 1}</td>
+<td style="font-weight:800;">${c.n}</td>
+<td>${fmt(c.v)} Coins</td>
+<td>${isOffsale(c) ? '<span class="offsale">OFFSALE</span>' : c.ch + '%'}</td>
+<td style="text-transform:capitalize;">${c.r.split(' ')[0]}</td>
+</tr>`).join('');
+}
+
+/* ---------- SHOP ---------- */
+function buyPack(t) {
+  if(userData.coins < packData[t].cost) return toast("Not enough coins!");
+  userData.coins -= packData[t].cost;
+  let pulls = [];
+  let cardCount = (t === 'golden') ? 3 : 5;
+  let gotGod = false, thankfulHit = null;
+  let glitchNow = isGlitchActive();
+  for(let i = 0; i < cardCount; i++) {
+    let r = Math.random() * 100, acc = 0, sel;
+    for(let c of packData[t].cards) { acc += c.ch; if(r <= acc) { sel = c; break; } }
+    let nc = {...(sel || packData[t].cards[0]), id: Math.random()};
+    if(glitchNow && Math.random() < 0.25) nc.trait = 'upside-down';
+    if(nc.r.includes("god-tier") || nc.r.includes("cosmic")) gotGod = true;
+    if(THANKFUL_GODS.includes(nc.n)) thankfulHit = nc;
+    pulls.push(nc); userData.inventory.push(nc);
+  }
+  document.getElementById('pack-opening-results').innerHTML = `<div class="results-head">${t} pack</div>` +
+    pulls.map((c, i) => `<div class="reveal" style="animation-delay:${i * 0.12}s">${createCardHTML(c)}</div>`).join("");
+  if(gotGod) {
+    document.getElementById('main-body').classList.add('apply-shake');
+    setTimeout(() => {
+      document.getElementById('main-body').classList.remove('apply-shake');
+      if(thankfulHit) {
+        document.getElementById('big-reveal-title').textContent = thankfulHit.n;
+        document.getElementById('big-reveal-card').innerHTML = createCardHTML(thankfulHit);
+        document.getElementById('big-reveal').classList.remove('hidden');
+      } else toast("GOD TIER PULL!", 'gold');
+    }, 1000);
+  }
+  updateUI();
+}
+
+function renderPacks() {
+  document.getElementById('shop-container').innerHTML = Object.keys(packData).map(k => {
+    const p = packData[k];
+    const chase = [...p.cards].sort((a, b) => a.ch - b.ch);
+    const gods = chase.filter(c => /god-tier|cosmic/.test(c.r));
+    const chaseText = gods.length > 1 ? `${gods.length} god-tiers inside` : `Chase: <b>${chase[0].n}</b>`;
+    return `<div class="pack ${p.aura} ${k === 'thankful' ? 'thankful' : ''}" onclick="buyPack('${k}')">
+      ${p.isNew ? '<span class="ptag">NEW</span>' : ''}
+      <div class="pname">${k}</div>
+      <div class="pchase">${gods.length > 1 ? '<b>' + chaseText + '</b>' : chaseText}</div>
+      <span class="pcost">${fmt(p.cost)} c</span>
+      <div class="pcount">${k === 'golden' ? 3 : 5} cards</div>
+    </div>`;
+  }).join('');
+}
+
+function oddsName(n) {
+  const color = GOD_COLORS[n];
+  if(!color) return `<span>${n}</span>`;
+  if(color.includes('gradient')) return `<span style="background:${color}; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; font-weight:800;">${n}</span>`;
+  return `<span style="color:${color}; font-weight:800;">${n}</span>`;
+}
+
+function renderOdds() {
+  const legacyItem = `<div class="odds-box legacy"><h4 style="color:var(--val-pink);">Legacy (Offsale)</h4>` +
+    LEGACY.map((n, i) => `<div>${oddsName(n)} <span class="offsale">#${i + 1} OFFSALE</span></div>`).join('') + `</div>`;
+  const shopOdds = Object.keys(packData).map(k => {
+    const items = packData[k].cards.map(c => `<div>${oddsName(c.n)}<span>${c.ch}%</span></div>`).join('');
+    return `<div class="odds-box"><h4>${k}</h4>${items}</div>`;
+  }).join('');
+  document.getElementById('odds-display').innerHTML = legacyItem + shopOdds;
+}
+
+/* ---------- AUCTION (rival bidders) ---------- */
+function minRaise(bid) { return Math.max(10, Math.ceil(bid * 0.08)); }
+function clearBotTimers() { botTimers.forEach(clearTimeout); botTimers = []; }
+
+function generateAuction() {
+  clearBotTimers();
+  auctionItems = []; bidDrafts = {};
+  const all = Object.values(packData).flatMap(p => p.cards).filter(c => c.n !== "PURE GOLD" && c.n !== "ANCIENT FOSSIL");
+  for(let i = 0; i < 4; i++) {
+    const c = all[Math.floor(Math.random() * all.length)];
+    const names = [...BOT_NAMES].sort(() => Math.random() - 0.5).slice(0, 2 + Math.floor(Math.random() * 2));
+    // Each rival has a secret max. Some stop early, some go past the card's sell value.
+    const bots = names.map(n => ({ n, max: Math.floor(c.v * rand(0.6, 1.4)) + 10 }));
+    auctionItems.push({ card: { n: c.n, r: c.r, v: c.v, ch: c.ch }, bid: Math.max(5, Math.floor(c.v * 0.5)), top: "Market", mine: 0, bots, feed: "Opening bid", wasMine: false });
+  }
+  renderAuction();
+}
+
+function botBid(item, vsYou) {
+  const need = item.bid + minRaise(item.bid);
+  const able = item.bots.filter(b => b.n !== item.top && b.max >= need);
+  if(!able.length) return false;
+  const b = able[Math.floor(Math.random() * able.length)];
+  const jump = minRaise(item.bid) * (1 + Math.floor(Math.random() * 3));
+  const amt = Math.min(b.max, item.bid + jump);
+  if(vsYou) { userData.coins += item.mine; item.mine = 0; }
+  item.bid = amt; item.top = b.n; item.feed = `${b.n} bid ${fmt(amt)} c`;
+  return true;
+}
+
+function customBid(idx) {
+  const item = auctionItems[idx];
+  const amt = parseInt(document.getElementById(`bid-input-${idx}`).value);
+  const need = item.bid + minRaise(item.bid);
+  if(item.top === "YOU") return toast("You're already the top bidder.");
+  if(!amt || amt < need) return toast(`Bid at least ${fmt(need)} c`);
+  if(userData.coins < amt) return toast("Not enough coins!");
+  userData.coins -= amt;
+  item.bid = amt; item.top = "YOU"; item.mine = amt; item.wasMine = true; item.feed = `You bid ${fmt(amt)} c`;
+  delete bidDrafts[idx];
+  if(auctionTime < 10) auctionTime = 10; // late bids give everyone a few more seconds
+  const round = auctionItems;
+  botTimers.push(setTimeout(() => {
+    if(round !== auctionItems || item.top !== "YOU") return;
+    if(botBid(item, true)) toast(`Outbid on ${item.card.n}! ${item.top} bid ${fmt(item.bid)} c`);
+    else item.feed = "Nobody topped your bid... yet";
+    renderAuction(); updateUI();
+  }, rand(900, 2600)));
+  renderAuction(); updateUI();
+}
+
+function tickAuction() {
+  if(auctionTime > 0) {
+    auctionTime--;
+    let changed = false;
+    auctionItems.forEach(item => { if(item.top !== "YOU" && Math.random() < 0.12 && botBid(item, false)) changed = true; });
+    if(changed) renderAuction();
+  } else {
+    clearBotTimers();
+    auctionItems.forEach(item => {
+      if(item.top === "YOU") { userData.inventory.push({ ...item.card, id: Math.random() }); toast(`You won ${item.card.n} for ${fmt(item.bid)} c!`, 'good'); }
+      else if(item.wasMine) toast(`${item.top} won ${item.card.n}. Your coins were refunded.`);
+    });
+    auctionTime = 120; generateAuction(); updateUI();
+  }
+  const el = document.getElementById('auction-timer');
+  el.innerText = `0${Math.floor(auctionTime / 60)}:${(auctionTime % 60).toString().padStart(2, '0')}`;
+  el.classList.toggle('hot', auctionTime <= 10);
+}
+
+function renderAuction() {
+  document.getElementById('auction-list').innerHTML = auctionItems.map((item, i) => {
+    const need = item.bid + minRaise(item.bid);
+    const draft = bidDrafts[i] && bidDrafts[i] >= need ? bidDrafts[i] : need;
+    const you = item.top === "YOU";
+    const cls = you ? 'winning-bid' : (item.wasMine ? 'outbid' : '');
+    return `<div class="lot ${cls}">
+      ${createCardHTML(item.card)}
+      <div class="row"><span>Top bidder</span><span class="who-top ${you ? 'you' : ''}">${you ? 'YOU' : item.top}</span></div>
+      <div class="row"><span>Price</span><b>${fmt(item.bid)} c</b></div>
+      <div class="row"><span>Card value</span><span>${fmt(item.card.v)} c</span></div>
+      <div class="feed">${item.feed}</div>
+      <div class="bidrow">
+        <input type="number" class="field" id="bid-input-${i}" value="${draft}" min="${need}" oninput="bidDrafts[${i}]=parseInt(this.value)||0" ${you ? 'disabled' : ''}>
+        <button class="btn primary" onclick="customBid(${i})" ${you ? 'disabled style="opacity:.5"' : ''}>Bid</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- TRADE ---------- */
+function stageForTrade(id) {
+  if(stagedCards.length >= 5) return toast("Max 5 cards!");
+  let idx = userData.inventory.findIndex(c => c.id === id);
+  if(idx === -1) return;
+  stagedCards.push(userData.inventory.splice(idx, 1)[0]); renderTrade();
+}
+function unstage(idx) { userData.inventory.push(stagedCards.splice(idx, 1)[0]); renderTrade(); }
+function renderTrade() {
+  document.getElementById('staged-cards-list').innerHTML = stagedCards.map((c, i) => `<div style="display:inline-block; cursor:pointer;" onclick="unstage(${i})">${createCardHTML(c)}</div>`).join('');
+  document.getElementById('trade-inventory-list').innerHTML = userData.inventory.map(c => createCardHTML(c, false, true)).join("");
+  save();
+}
+function generateTradeCode() {
+  if(stagedCards.length === 0) return toast("Stage some cards first!");
+  let code = btoa(unescape(encodeURIComponent(JSON.stringify({ sender: userData.name, cards: stagedCards }))));
+  document.getElementById('output-trade-code').value = code; stagedCards = []; renderTrade();
+  toast("Code made. Send it to your friend.", 'good');
+}
+function receiveTradeCode() {
+  try {
+    let packageData = JSON.parse(decodeURIComponent(escape(atob(document.getElementById('input-trade-code').value.trim()))));
+    packageData.cards.forEach(c => { c.id = Math.random(); userData.inventory.push(c); });
+    document.getElementById('input-trade-code').value = ""; updateUI(); renderTrade();
+    toast(`Got ${packageData.cards.length} card(s) from ${packageData.sender || 'a friend'}!`, 'good');
+  } catch(e) { toast("Invalid Code!"); }
+}
+
+/* ---------- INVENTORY ---------- */
+function sortInventoryByValue() { userData.inventory.sort((a, b) => b.v - a.v); renderCollection(); }
+function bulkSell(r) {
+  let v = 0, n = 0;
+  userData.inventory = userData.inventory.filter(c => { if(c.r.split(' ')[0] === r) { v += c.v; n++; return false; } return true; });
+  userData.coins += v; updateUI(); renderCollection();
+  if(n) toast(`Sold ${n} ${r} card(s) for ${fmt(v)} c`, 'gold');
+}
+function renderCollection() {
+  const query = document.getElementById('inventory-search').value.toLowerCase();
+  const filtered = userData.inventory.filter(c => c.n.toLowerCase().includes(query));
+  const total = userData.inventory.reduce((s, c) => s + c.v, 0);
+  document.getElementById('inv-summary').textContent = `${userData.inventory.length} cards  |  worth ${fmt(total)} c`;
+  document.getElementById('collection-list').innerHTML = filtered.length ? filtered.map(c => createCardHTML(c, true)).join("") : '<p class="sub">No cards yet. Hit the shop.</p>';
+}
+function sell(id) { let i = userData.inventory.findIndex(c => c.id == id); if(i === -1) return; userData.coins += userData.inventory[i].v; userData.inventory.splice(i, 1); renderCollection(); updateUI(); }
+
+function updateUI() { document.getElementById('coin-count').innerText = fmt(userData.coins); save(); }
+function showTab(t) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden'));
+  document.getElementById(t + '-tab').classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
+  if(t === 'collection') renderCollection();
+  if(t === 'trade') renderTrade();
+  if(t === 'rankings') renderRankings();
+  if(t === 'odds') renderOdds();
+  if(t === 'auction') renderAuction();
+}
+function exportData() { document.getElementById('data-box').value = JSON.stringify(userData); }
+function importData() {
+  try {
+    const d = JSON.parse(document.getElementById('data-box').value);
+    if(!Array.isArray(d.inventory)) throw 0;
+    userData = d; userData.name = userData.name || "Collector";
+    document.getElementById('display-username').innerText = userData.name;
+    updateUI(); toast("Save imported!", 'good');
+  } catch(e) { toast("Error! That save code didn't work."); }
+}
+window.addEventListener('beforeunload', save);
+</script>
+</body>
+</html>
