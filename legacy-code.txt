@@ -936,7 +936,7 @@ async function afterFirstLoad() {
       toast(`${fmt(back)} coins came back from an auction you left.`, 'gold');
     }
   }
-  if (!S.u.legacyUsed && !S.u.legacySkip) legacyModal(true);
+  if (!S.u.legacyUsed) legacyModal(true); // shows every login until the one-time import is used
 }
 function onUserChanged() {
   if (!S.u) return;
@@ -1238,10 +1238,10 @@ function legacyModal(onLogin) {
     <p style="line-height:1.5;margin:10px 0 0;">Your cards now save to your name <b>${esc(S.u.name)}</b> automatically, on any device.</p>
     <div class="notice" style="margin-top:12px;"><div>Old save codes from the Data tab will work <b>ONE LAST TIME</b>. Paste yours below to bring your coins and cards over. After that, old codes stop working for good.</div></div>
     <textarea class="field" id="legacy-txt" placeholder="Paste your old save code here">${esc(pre)}</textarea>
-    <div class="cd-actions"><button class="btn gold" id="legacy-go">Import my old save</button><button class="btn" id="legacy-skip">I don't have one</button></div>
-    <p class="muted" style="font-size:12px;margin:10px 0 0;">You can also do this later from the Profile tab. Card values come from the game, not the code.</p></div>`);
+    <div class="cd-actions"><button class="btn gold" id="legacy-go">Import my old save</button><button class="btn" id="legacy-skip">Not now</button></div>
+    <p class="muted" style="font-size:12px;margin:10px 0 0;">This pops up every time you log in until you use it. It's also in the Profile tab. Card values come from the game, not the code.</p></div>`);
   $('#legacy-go').onclick = () => importLegacy($('#legacy-txt').value);
-  $('#legacy-skip').onclick = () => { closeModal(); if (onLogin) writeUser({ legacySkip: true }); };
+  $('#legacy-skip').onclick = () => closeModal();
 }
 async function importLegacy(text) {
   if (!canAct()) return;
