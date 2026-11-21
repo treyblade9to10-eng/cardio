@@ -1245,7 +1245,7 @@ async function importLegacy(text) {
   const inv = d && (Array.isArray(d.inventory) ? d.inventory : Array.isArray(d.cards) ? d.cards : null);
   if (!inv) return toast("That doesn't look like an old save code.");
   const tx = await dbRef('users/' + S.key + '/legacyUsed').transaction(cur => cur ? undefined : true).catch(() => null);
-  if (!tx || !tx.committed) return toast('This account already used its one-time import.');
+  if (!tx || !tx.committed || !tx.snapshot || tx.snapshot.val() !== true) return toast('This account already used its one-time import.');
   const MAX_CARDS = 400, MAX_COINS = 250000, perGod = {};
   let skipped = 0, capped = 0;
   const upd = {};
@@ -1468,8 +1468,9 @@ const Trade = (() => {
     if (out) await cancelOut(true);
     $('#req-root').innerHTML = ''; popFor = null;
     await dbRef(`requests/${me}/${from}`).remove();
-    const tx = await dbRef('rooms/' + r.room + '/status').transaction(st => st === 'waiting' ? 'open' : undefined).catch(() => null);
-    if (!tx || !tx.committed) return toast('That trade request expired.');
+    // Firebase runs the transaction first with null (nothing cached yet), so null must not abort it.
+    const tx = await dbRef('rooms/' + r.room + '/status').transaction(st => st === null ? null : st === 'waiting' ? 'open' : undefined).catch(() => null);
+    if (!tx || !tx.committed || !tx.snapshot || tx.snapshot.val() !== 'open') return toast('That trade request expired.');
     enterRoom(r.room, from, r.n);
   }
   async function decline(from) {
@@ -1542,8 +1543,9 @@ const Trade = (() => {
     const s = sig();
     if (!d.ready || d.ready[d.a] !== s || d.ready[d.b] !== s) return;
     room.busy = true;
-    const tx = await dbRef(`rooms/${room.id}/status`).transaction(st => st === 'open' ? 'swapping' : undefined).catch(() => null);
-    if (!tx || !tx.committed) { room.busy = false; return; }
+    const rid = room.id;
+    const tx = await dbRef(`rooms/${rid}/status`).transaction(st => st === null ? null : st === 'open' ? 'swapping' : undefined).catch(() => null);
+    if (!tx || !tx.committed || !tx.snapshot || tx.snapshot.val() !== 'swapping') { if (room) room.busy = false; return; }
     try {
       const [ua, ub] = await Promise.all([dbRef('users/' + d.a).once('value'), dbRef('users/' + d.b).once('value')]).then(r => r.map(x => x.val() || {}));
       const oa = offerOf(d.a), ob = offerOf(d.b);
@@ -1561,14 +1563,14 @@ const Trade = (() => {
       };
       move(d.a, d.b, ua, oa); move(d.b, d.a, ub, ob);
       if (oa.coins && ob.coins) { upd[`users/${d.a}/coins`] = INC(ob.coins - oa.coins); upd[`users/${d.b}/coins`] = INC(oa.coins - ob.coins); }
-      upd[`rooms/${room.id}/status`] = 'done';
-      upd[`rooms/${room.id}/result`] = { [d.a]: oa, [d.b]: ob, at: now };
+      upd[`rooms/${rid}/status`] = 'done';
+      upd[`rooms/${rid}/result`] = { [d.a]: oa, [d.b]: ob, at: now };
       await db.ref(ROOT).update(upd);
     } catch (e) {
-      await dbRef('rooms/' + room.id).update({ status: 'open', ready: null }).catch(() => {});
+      await dbRef('rooms/' + rid).update({ status: 'open', ready: null }).catch(() => {});
       sys('Trade did not go through because the cards changed. Lock in again.');
     }
-    room.busy = false;
+    if (room) room.busy = false;
   }
   function finished(d) {
     const got = offerOf(room.other), gave = offerOf(me);
